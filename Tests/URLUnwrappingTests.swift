@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import LinkRouterCore
+@testable import BrowserSelectorCore
 
 /// Wrapped links are the reason host-based rules silently fail on work mail:
 /// every Outlook link arrives as `*.safelinks.protection.outlook.com`, so a

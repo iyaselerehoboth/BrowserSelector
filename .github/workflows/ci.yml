@@ -15,4 +15,4 @@ jobs:
         run: swift test
 
       - name: Build app
-        run: xcodebuild -project LinkRouter.xcodeproj -scheme LinkRouter -configuration Release build
+        run: xcodebuild -project BrowserSelector.xcodeproj -scheme BrowserSelector -configuration Release build

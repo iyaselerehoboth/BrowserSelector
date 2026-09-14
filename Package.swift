@@ -12,21 +12,21 @@
 import PackageDescription
 
 let package = Package(
-    name: "LinkRouterCore",
+    name: "BrowserSelectorCore",
     platforms: [.macOS(.v13)],
     targets: [
         .target(
-            name: "LinkRouterCore",
-            path: "LinkRouter",
+            name: "BrowserSelectorCore",
+            path: "BrowserSelector",
             exclude: [
                 "Assets.xcassets",
                 "Preview Content",
                 "Info.plist",
-                "LinkRouter.entitlements",
-                "LinkRouter.icns",
-                "LinkRouterApp.swift",
-                "LinkRouterApplication.swift",
-                "LinkRouterWindow.swift",
+                "BrowserSelector.entitlements",
+                "BrowserSelector.icns",
+                "BrowserSelectorApp.swift",
+                "BrowserSelectorApplication.swift",
+                "BrowserSelectorWindow.swift",
                 "main.swift",
                 "Models/BrowserUtil.swift",
                 "Modifiers",
@@ -45,8 +45,8 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "LinkRouterCoreTests",
-            dependencies: ["LinkRouterCore"],
+            name: "BrowserSelectorCoreTests",
+            dependencies: ["BrowserSelectorCore"],
             path: "Tests"
         ),
     ]

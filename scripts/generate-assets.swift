@@ -1,6 +1,6 @@
-// Generates LinkRouter's app icon (.iconset PNGs) and the README banner.
+// Generates BrowserSelector's app icon (.iconset PNGs) and the README banner.
 // Run from the repo root:  swift scripts/generate-assets.swift
-// Then:                    iconutil -c icns build/LinkRouter.iconset -o LinkRouter/LinkRouter.icns
+// Then:                    iconutil -c icns build/BrowserSelector.iconset -o BrowserSelector/BrowserSelector.icns
 
 import AppKit
 import UniformTypeIdentifiers
@@ -98,7 +98,7 @@ let fm = FileManager.default
 let root = URL(fileURLWithPath: fm.currentDirectoryPath)
 
 // --- .iconset ---
-let iconset = root.appendingPathComponent("build/LinkRouter.iconset")
+let iconset = root.appendingPathComponent("build/BrowserSelector.iconset")
 try? fm.removeItem(at: iconset)
 try! fm.createDirectory(at: iconset, withIntermediateDirectories: true)
 
@@ -125,7 +125,7 @@ banner.drawLinearGradient(bg, start: .zero, end: CGPoint(x: 0, y: bh), options: 
 drawAppIcon(banner, size: 700, origin: CGPoint(x: 130, y: 70))
 
 NSGraphicsContext.current = NSGraphicsContext(cgContext: banner, flipped: false)
-let title = NSAttributedString(string: "LinkRouter", attributes: [
+let title = NSAttributedString(string: "BrowserSelector", attributes: [
     .font: NSFont.systemFont(ofSize: 176, weight: .bold),
     .foregroundColor: NSColor.white,
 ])
@@ -142,5 +142,5 @@ let meta = NSAttributedString(string: "Free & open source · GPL-3.0 · macOS 13
 meta.draw(at: CGPoint(x: 906, y: 220))
 NSGraphicsContext.current = nil
 
-savePNG(banner, to: root.appendingPathComponent("images/linkrouter.png"))
-print("banner written to images/linkrouter.png")
+savePNG(banner, to: root.appendingPathComponent("images/browserselector.png"))
+print("banner written to images/browserselector.png")

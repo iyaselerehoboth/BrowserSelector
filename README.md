@@ -1,37 +1,25 @@
-> **This is a personal fork.** Upstream is
-> [LinkRouter](https://github.com/indranandjha1993/LinkRouter) (GPL-3.0), itself
-> a fork of [Browserino](https://github.com/AlexStrNik/Browserino). Changes here:
-> Outlook SafeLinks unwrapping, sending-app capture, bundle id
-> `com.rehob.BrowserSelector`.
->
-> **Development**
-> - `swift test` runs the logic suite (35 tests) with **no Xcode** required.
->   Tests use swift-testing, not XCTest — see `memory/swift-dev-without-xcode`.
-> - Building the `.app` needs Xcode.app; Command Line Tools is not enough.
-> - `spike/` holds the verified default-browser harness. `spike/setdefault.swift`
->   restores Chrome if a broken build is left as the default handler.
+![BrowserSelector](images/browserselector.png?v2)
 
-# LinkRouter
+**BrowserSelector** routes every link you click into the right browser. Set it
+as the macOS default browser and a picker appears at the cursor; choose with
+the mouse, arrow keys, or a per-browser shortcut, or let a rule route it
+silently.
 
-![LinkRouter](images/linkrouter.png?v2)
-
-<p align="center">
-  <a href="https://github.com/indranandjha1993/LinkRouter/actions/workflows/release.yml"><img src="https://github.com/indranandjha1993/LinkRouter/actions/workflows/release.yml/badge.svg" alt="Release"></a>
-  <a href="https://github.com/indranandjha1993/LinkRouter/releases/latest"><img src="https://img.shields.io/github/v/release/indranandjha1993/LinkRouter?label=release&color=2563EB" alt="Latest release"></a>
-  <a href="https://github.com/indranandjha1993/LinkRouter/releases"><img src="https://img.shields.io/github/downloads/indranandjha1993/LinkRouter/total?color=6366F1" alt="Downloads"></a>
-  <img src="https://img.shields.io/badge/macOS-13%2B-blue" alt="macOS 13+">
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/indranandjha1993/LinkRouter?color=green" alt="GPL-3.0 license"></a>
-</p>
-
-**LinkRouter** is a tiny, fast browser router for macOS written in SwiftUI. Set it as your default browser, and every link you click outside a browser pops up a picker — routing the link to the browser (or browser profile) you choose, with keyboard shortcuts and URL-based rules for automatic routing.
+Built to keep work in Chrome and everything else in Dia on the same machine.
 
 ## Features
 
-- ⚡ Native SwiftUI — instant popup, tiny footprint, no Electron
-- ⌨️ Assign a keyboard shortcut to each browser
-- 🎯 Rules — route matching URLs (regex) to a browser automatically, no prompt
-- 👤 Supports browser profiles
-- 🖥 macOS Ventura (13) and newer, Apple Silicon and Intel
+- Native SwiftUI — instant popup, tiny footprint, no Electron
+- Per-browser keyboard shortcuts
+- Regex rules that route matching URLs with no prompt
+- Browser profile support
+- **Unwraps redirect wrappers** before matching — Outlook SafeLinks, Google
+  `/url`, LinkedIn, Facebook, Reddit. Without this, every rule written against
+  a real host silently fails on work mail, because the link arrives as
+  `*.safelinks.protection.outlook.com`
+- **Records the sending app** for each link, so source-based rules ("anything
+  from Slack → Chrome") can be designed against real data
+- macOS 13+, Apple Silicon and Intel
 
 ## In action
 
@@ -39,40 +27,67 @@
 |:---:|:---:|
 | <img src="images/screenshot-prompt.png" width="380" alt="The picker — choose a browser for the clicked link"> | <img src="images/screenshot-preferences.png" width="500" alt="Preferences — General tab"> |
 
-Click a link anywhere outside a browser — the picker appears. Choose with the mouse, arrow keys, or a per-browser shortcut, or let a rule route it automatically.
+## Build and install
 
-## Installation
-
-### Homebrew
-
-```bash
-brew tap indranandjha1993/tap
-brew install --cask linkrouter
-xattr -dr com.apple.quarantine /Applications/LinkRouter.app
-```
-
-The `xattr` step clears Gatekeeper quarantine — releases are ad-hoc signed, not notarized with an Apple Developer certificate. Alternatively, download from the [releases page](https://github.com/indranandjha1993/LinkRouter/releases) and allow the app under **System Settings → Privacy & Security**.
-
-### Set as default browser
-
-Open LinkRouter once, then go to **System Settings → Desktop & Dock → Default web browser** and choose LinkRouter. From then on, links clicked in any app open the picker.
-
-## Build from source
+Building the `.app` needs **Xcode.app**; Command Line Tools alone is not
+enough (no `xcodebuild`, no asset-catalog compiler, no SwiftUI macro plugins).
 
 ```bash
-git clone https://github.com/indranandjha1993/LinkRouter.git
-cd LinkRouter
-xcodebuild -project LinkRouter.xcodeproj -scheme LinkRouter -configuration Release build
+xcodebuild -project BrowserSelector.xcodeproj -scheme BrowserSelector -configuration Release build
 ```
 
-Requires Xcode 26 or newer.
+In Xcode, set Signing & Capabilities → Team **None**, Signing Certificate
+**Sign to Run Locally**. No Apple Developer Program membership and no
+notarization are needed for a build you run yourself.
+
+Then copy the `.app` into `/Applications` or `~/Applications` — **a bundle
+outside those locations is silently ignored by LaunchServices** and never
+appears as a browser option. Launch it once, then choose it under
+**System Settings → Desktop & Dock → Default web browser**.
+
+## Development
+
+```bash
+swift test          # 35 tests, no Xcode required
+```
+
+The SwiftPM package compiles only the pure logic (rules, host matching, URL
+unwrapping) so the suite runs on Command Line Tools alone. Tests use
+**swift-testing**, not XCTest — XCTest ships inside Xcode.app.
+
+Two traps worth knowing:
+
+- Every non-source entry under the target path must stay listed in
+  `Package.swift`'s `exclude:`, or SwiftPM tries to run `actool` on the asset
+  catalog and fails with a confusing decode error.
+- The first incremental `swift test` after adding a test file sometimes
+  reports `plugin for module 'TestingMacros' not found`. Re-run it; the error
+  is spurious.
+
+### Recovery
+
+`spike/` holds the harness used to verify default-browser registration. If a
+broken build is left as the system default and links stop opening:
+
+```bash
+cd spike && swiftc -o setdefault setdefault.swift && ./setdefault "/Applications/Google Chrome.app"
+```
+
+Note that `NSWorkspace.setDefaultApplication` reports
+`https: The file couldn't be opened.` even when it succeeds — verify with
+`urlForApplication(toOpen:)` rather than trusting the error.
 
 ## Credits
 
-LinkRouter is a fork of [**Browserino**](https://github.com/AlexStrNik/Browserino) by [Aleksandr Strizhnev (AlexStrNik)](https://github.com/AlexStrNik) — full credit for the original design and implementation belongs to him and the Browserino contributors. The complete upstream commit history is preserved in this repository. If you find this app useful, consider [supporting the original author](https://alexstrnik.gumroad.com/l/browserino).
+A personal fork of [**LinkRouter**](https://github.com/indranandjha1993/LinkRouter)
+by [Indranand Jha](https://github.com/indranandjha1993), which is itself a fork
+of [**Browserino**](https://github.com/AlexStrNik/Browserino) by
+[Aleksandr Strizhnev](https://github.com/AlexStrNik) — full credit for the
+original design and implementation belongs to him and the Browserino
+contributors. If you find this useful, consider
+[supporting the original author](https://alexstrnik.gumroad.com/l/browserino).
 
-Browserino itself was inspired by [Browserosaurus](https://github.com/will-stone/browserosaurus).
+Browserino was in turn inspired by
+[Browserosaurus](https://github.com/will-stone/browserosaurus).
 
-## License
-
-[GPL-3.0](LICENSE) — same license as upstream Browserino, as required. You are free to use, study, modify, and redistribute this software under the same terms.
+Licensed GPL-3.0, as required by its upstreams.
