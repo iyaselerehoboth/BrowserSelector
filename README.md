@@ -60,9 +60,11 @@ Two traps worth knowing:
 - Every non-source entry under the target path must stay listed in
   `Package.swift`'s `exclude:`, or SwiftPM tries to run `actool` on the asset
   catalog and fails with a confusing decode error.
-- The first incremental `swift test` after adding a test file sometimes
-  reports `plugin for module 'TestingMacros' not found`. Re-run it; the error
-  is spurious.
+- `swift test` intermittently fails with
+  `plugin for module 'TestingMacros' not found` — measured at roughly one run
+  in three, unrelated to whether the build is clean or incremental. It is a
+  macro-plugin resolution flake in Command Line Tools, not a real error; just
+  re-run. Expected to stop once Xcode is installed and supplies the plugin.
 
 ### Recovery
 
