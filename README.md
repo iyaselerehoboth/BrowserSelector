@@ -1,3 +1,16 @@
+> **This is a personal fork.** Upstream is
+> [LinkRouter](https://github.com/indranandjha1993/LinkRouter) (GPL-3.0), itself
+> a fork of [Browserino](https://github.com/AlexStrNik/Browserino). Changes here:
+> Outlook SafeLinks unwrapping, sending-app capture, bundle id
+> `com.rehob.BrowserSelector`.
+>
+> **Development**
+> - `swift test` runs the logic suite (35 tests) with **no Xcode** required.
+>   Tests use swift-testing, not XCTest — see `memory/swift-dev-without-xcode`.
+> - Building the `.app` needs Xcode.app; Command Line Tools is not enough.
+> - `spike/` holds the verified default-browser harness. `spike/setdefault.swift`
+>   restores Chrome if a broken build is left as the default handler.
+
 # LinkRouter
 
 ![LinkRouter](images/linkrouter.png?v2)
