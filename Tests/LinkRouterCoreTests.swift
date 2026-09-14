@@ -1,136 +1,135 @@
-import XCTest
+// swift-testing, not XCTest: XCTest ships inside Xcode.app and is absent from
+// Command Line Tools, so XCTest-based tests cannot run without a full Xcode.
+import Testing
+import Foundation
 @testable import LinkRouterCore
 
-final class HostMatchingTests: XCTestCase {
-    func testEmptyConfiguredHostMatchesEverything() {
-        XCTAssertTrue(URL(string: "https://anything.example")!.matchesHost(""))
+@Suite struct HostMatching {
+    @Test func emptyConfiguredHostMatchesEverything() {
+        #expect(URL(string: "https://anything.example")!.matchesHost(""))
     }
 
-    func testExactHostMatches() {
-        XCTAssertTrue(URL(string: "https://github.com/foo")!.matchesHost("github.com"))
+    @Test func exactHostMatches() {
+        #expect(URL(string: "https://github.com/foo")!.matchesHost("github.com"))
     }
 
-    func testSubdomainMatches() {
-        XCTAssertTrue(URL(string: "https://gist.github.com")!.matchesHost("github.com"))
+    @Test func subdomainMatches() {
+        #expect(URL(string: "https://gist.github.com")!.matchesHost("github.com"))
     }
 
-    func testSuffixLookalikeDoesNotMatch() {
-        XCTAssertFalse(URL(string: "https://notgithub.com")!.matchesHost("github.com"))
+    @Test func suffixLookalikeDoesNotMatch() {
+        #expect(!URL(string: "https://notgithub.com")!.matchesHost("github.com"))
     }
 
-    func testMatchingIsCaseInsensitive() {
-        XCTAssertTrue(URL(string: "https://GitHub.com")!.matchesHost("github.com"))
-        XCTAssertTrue(URL(string: "https://github.com")!.matchesHost("GitHub.com"))
+    @Test func matchingIsCaseInsensitive() {
+        #expect(URL(string: "https://GitHub.com")!.matchesHost("github.com"))
+        #expect(URL(string: "https://github.com")!.matchesHost("GitHub.com"))
     }
 
-    func testURLWithoutHostDoesNotMatchConfiguredHost() {
-        XCTAssertFalse(URL(string: "about:blank")!.matchesHost("github.com"))
+    @Test func urlWithoutHostDoesNotMatchConfiguredHost() {
+        #expect(!URL(string: "about:blank")!.matchesHost("github.com"))
     }
 }
 
-final class RuleMatchingTests: XCTestCase {
+@Suite struct RuleMatching {
     private func rule(_ regex: String) -> Rule {
         Rule(regex: regex, app: URL(fileURLWithPath: "/Applications/Safari.app"))
     }
 
-    func testEmptyPatternNeverMatches() {
-        XCTAssertFalse(rule("").matches("https://example.com"))
+    @Test func emptyPatternNeverMatches() {
+        #expect(!rule("").matches("https://example.com"))
     }
 
-    func testInvalidPatternNeverMatches() {
-        XCTAssertFalse(rule("[").matches("https://example.com"))
+    @Test func invalidPatternNeverMatches() {
+        #expect(!rule("[").matches("https://example.com"))
     }
 
-    func testSubstringMatch() {
-        XCTAssertTrue(rule("github").matches("https://github.com/foo"))
+    @Test func substringMatch() {
+        #expect(rule("github").matches("https://github.com/foo"))
     }
 
-    func testMatchingIsCaseInsensitive() {
-        XCTAssertTrue(rule("GITHUB").matches("https://github.com"))
+    @Test func matchingIsCaseInsensitive() {
+        #expect(rule("GITHUB").matches("https://github.com"))
     }
 
-    func testNonMatchingPattern() {
-        XCTAssertFalse(rule("gitlab").matches("https://github.com"))
+    @Test func nonMatchingPattern() {
+        #expect(!rule("gitlab").matches("https://github.com"))
     }
 
-    func testAnchoredPattern() {
-        XCTAssertTrue(rule("^https://mail\\.").matches("https://mail.example.com"))
-        XCTAssertFalse(rule("^https://mail\\.").matches("https://example.com/mail."))
+    @Test func anchoredPattern() {
+        #expect(rule("^https://mail\\.").matches("https://mail.example.com"))
+        #expect(!rule("^https://mail\\.").matches("https://example.com/mail."))
     }
 }
 
-final class DeepLinkTests: XCTestCase {
+@Suite struct DeepLink {
     private func deepLink(encoding target: String) -> URL {
         let encoded = Data(target.utf8).base64EncodedString()
         return URL(string: "linkrouter://open?url=\(encoded)")!
     }
 
-    func testDecodesHTTPSTarget() {
-        XCTAssertEqual(
-            deepLink(encoding: "https://example.com/path?q=1").linkRouterDeepLinkTarget,
-            URL(string: "https://example.com/path?q=1")
-        )
+    @Test func decodesHTTPSTarget() {
+        #expect(deepLink(encoding: "https://example.com/path?q=1").linkRouterDeepLinkTarget
+                == URL(string: "https://example.com/path?q=1"))
     }
 
-    func testDecodesHTTPTarget() {
-        XCTAssertEqual(
-            deepLink(encoding: "http://example.com").linkRouterDeepLinkTarget,
-            URL(string: "http://example.com")
-        )
+    @Test func decodesHTTPTarget() {
+        #expect(deepLink(encoding: "http://example.com").linkRouterDeepLinkTarget
+                == URL(string: "http://example.com"))
     }
 
-    func testSchemeComparisonIsCaseInsensitive() {
-        XCTAssertNotNil(deepLink(encoding: "HTTPS://EXAMPLE.COM").linkRouterDeepLinkTarget)
+    @Test func schemeComparisonIsCaseInsensitive() {
+        #expect(deepLink(encoding: "HTTPS://EXAMPLE.COM").linkRouterDeepLinkTarget != nil)
     }
 
-    func testRejectsFileTarget() {
-        XCTAssertNil(deepLink(encoding: "file:///etc/passwd").linkRouterDeepLinkTarget)
+    @Test func rejectsFileTarget() {
+        #expect(deepLink(encoding: "file:///etc/passwd").linkRouterDeepLinkTarget == nil)
     }
 
-    func testRejectsJavaScriptTarget() {
-        XCTAssertNil(deepLink(encoding: "javascript:alert(1)").linkRouterDeepLinkTarget)
+    @Test func rejectsJavaScriptTarget() {
+        #expect(deepLink(encoding: "javascript:alert(1)").linkRouterDeepLinkTarget == nil)
     }
 
-    func testRejectsSchemeRelativeTarget() {
-        XCTAssertNil(deepLink(encoding: "//example.com").linkRouterDeepLinkTarget)
+    @Test func rejectsSchemeRelativeTarget() {
+        #expect(deepLink(encoding: "//example.com").linkRouterDeepLinkTarget == nil)
     }
 
-    func testRejectsInvalidBase64() {
-        XCTAssertNil(URL(string: "linkrouter://open?url=%%%")!.linkRouterDeepLinkTarget)
+    @Test func rejectsInvalidBase64() {
+        #expect(URL(string: "linkrouter://open?url=%%%")!.linkRouterDeepLinkTarget == nil)
     }
 
-    func testRejectsMissingQuery() {
-        XCTAssertNil(URL(string: "linkrouter://open")!.linkRouterDeepLinkTarget)
+    @Test func rejectsMissingQuery() {
+        #expect(URL(string: "linkrouter://open")!.linkRouterDeepLinkTarget == nil)
     }
 
-    func testIgnoresOtherSchemesAndHosts() {
+    @Test func ignoresOtherSchemesAndHosts() {
         let encoded = Data("https://example.com".utf8).base64EncodedString()
-        XCTAssertNil(URL(string: "https://open?url=\(encoded)")!.linkRouterDeepLinkTarget)
-        XCTAssertNil(URL(string: "linkrouter://other?url=\(encoded)")!.linkRouterDeepLinkTarget)
+        #expect(URL(string: "https://open?url=\(encoded)")!.linkRouterDeepLinkTarget == nil)
+        #expect(URL(string: "linkrouter://other?url=\(encoded)")!.linkRouterDeepLinkTarget == nil)
     }
 }
 
-final class StorageCodingTests: XCTestCase {
-    func testURLArrayRoundTrip() {
+@Suite struct StorageCoding {
+    @Test func urlArrayRoundTrip() {
         let urls = [
             URL(string: "file:///Applications/Safari.app/")!,
             URL(string: "file:///Applications/Google%20Chrome.app/")!,
         ]
-        XCTAssertEqual([URL](rawValue: urls.rawValue), urls)
+        #expect([URL](rawValue: urls.rawValue) == urls)
     }
 
-    func testRuleArrayRoundTrip() {
+    @Test func ruleArrayRoundTrip() {
         let rules = [Rule(regex: "^https://mail\\.", app: URL(fileURLWithPath: "/Applications/Safari.app"))]
-        XCTAssertEqual([Rule](rawValue: rules.rawValue), rules)
+        #expect([Rule](rawValue: rules.rawValue) == rules)
     }
 
-    func testDictionaryRoundTrip() {
+    @Test func dictionaryRoundTrip() {
         let shortcuts = ["com.apple.Safari": "S", "com.google.Chrome": "C"]
-        XCTAssertEqual([String: String](rawValue: shortcuts.rawValue), shortcuts)
+        #expect([String: String](rawValue: shortcuts.rawValue) == shortcuts)
     }
 
-    func testMalformedRawValueDecodesToNil() {
-        XCTAssertNil([URL](rawValue: "not json"))
-        XCTAssertNil([String: String](rawValue: "{broken"))
+    @Test func malformedRawValueDecodesToNil() {
+        #expect([URL](rawValue: "not json") == nil)
+        #expect([String: String](rawValue: "{broken") == nil)
     }
 }
