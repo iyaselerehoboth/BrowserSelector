@@ -25,6 +25,8 @@
 		986AC6242CECDB5000884C40 /* LinkRouterApplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986AC6232CECDB4700884C40 /* LinkRouterApplication.swift */; };
 		986DC8072CFE42E300447DC7 /* RulesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC8062CFE42E000447DC7 /* RulesTab.swift */; };
 		986DC8092CFE42EB00447DC7 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC8082CFE42EA00447DC7 /* Rule.swift */; };
+F327559DEEEF50A27EDE6AEF /* LinkLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42BA2ED89127AECFB5E48903 /* LinkLog.swift */; };
+404EE5345986C71C34BBE2FD /* SourceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1958F47F78D68199A325578 /* SourceApp.swift */; };
 		986DC80C2CFE447600447DC7 /* EditRuleForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC80B2CFE447200447DC7 /* EditRuleForm.swift */; };
 		986DF3C42E45ED0500D5A3C4 /* View+FocusEffectDisabled.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DF3C32E45ED0100D5A3C4 /* View+FocusEffectDisabled.swift */; };
 		986DF3C82E45F2F000D5A3C4 /* View+OnKeyPress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DF3C72E45F2EC00D5A3C4 /* View+OnKeyPress.swift */; };
@@ -37,6 +39,7 @@
 		989B17FD2C17400A0039441B /* EditAppForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989B17FC2C17400A0039441B /* EditAppForm.swift */; };
 		98F919362C12187500BDC10C /* LinkRouter.icns in Resources */ = {isa = PBXBuildFile; fileRef = 98F919352C12187500BDC10C /* LinkRouter.icns */; };
 		B9CFBE192F0C6F3D00FC6D37 /* URLExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CFBE182F0C6F3D00FC6D37 /* URLExtensions.swift */; };
+DF497C0649E27B4A1C26A8F6 /* URLUnwrapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 301016B718366C923D18860A /* URLUnwrapping.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -61,6 +64,8 @@
 		986AC6232CECDB4700884C40 /* LinkRouterApplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkRouterApplication.swift; sourceTree = "<group>"; };
 		986DC8062CFE42E000447DC7 /* RulesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesTab.swift; sourceTree = "<group>"; };
 		986DC8082CFE42EA00447DC7 /* Rule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
+42BA2ED89127AECFB5E48903 /* LinkLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkLog.swift; sourceTree = "<group>"; };
+A1958F47F78D68199A325578 /* SourceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceApp.swift; sourceTree = "<group>"; };
 		986DC80B2CFE447200447DC7 /* EditRuleForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditRuleForm.swift; sourceTree = "<group>"; };
 		986DF3C32E45ED0100D5A3C4 /* View+FocusEffectDisabled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+FocusEffectDisabled.swift"; sourceTree = "<group>"; };
 		986DF3C72E45F2EC00D5A3C4 /* View+OnKeyPress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+OnKeyPress.swift"; sourceTree = "<group>"; };
@@ -73,6 +78,7 @@
 		989B17FC2C17400A0039441B /* EditAppForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditAppForm.swift; sourceTree = "<group>"; };
 		98F919352C12187500BDC10C /* LinkRouter.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = LinkRouter.icns; sourceTree = "<group>"; };
 		B9CFBE182F0C6F3D00FC6D37 /* URLExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLExtensions.swift; sourceTree = "<group>"; };
+301016B718366C923D18860A /* URLUnwrapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLUnwrapping.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -144,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				B9CFBE182F0C6F3D00FC6D37 /* URLExtensions.swift */,
+				301016B718366C923D18860A /* URLUnwrapping.swift */,
 				9838C97F2E9BC6CB00261421 /* View+Tooltip.swift */,
 				984671CF2E68A05800250D9C /* View+ScrollEdgeDisabled.swift */,
 				986DF3C72E45F2EC00D5A3C4 /* View+OnKeyPress.swift */,
@@ -166,6 +173,8 @@
 			isa = PBXGroup;
 			children = (
 				986DC8082CFE42EA00447DC7 /* Rule.swift */,
+				42BA2ED89127AECFB5E48903 /* LinkLog.swift */,
+				A1958F47F78D68199A325578 /* SourceApp.swift */,
 				664FDF212CE4AA6B009766AA /* BrowserUtil.swift */,
 			);
 			path = Models;
@@ -273,11 +282,14 @@
 				9830F0A62C119A3000D69C88 /* LinkRouterApp.swift in Sources */,
 				9830F0C52C11DF2C00D69C88 /* LinkRouterWindow.swift in Sources */,
 				B9CFBE192F0C6F3D00FC6D37 /* URLExtensions.swift in Sources */,
+				DF497C0649E27B4A1C26A8F6 /* URLUnwrapping.swift in Sources */,
 				989B17FB2C1710D70039441B /* AppsTab.swift in Sources */,
 				986DF3C42E45ED0500D5A3C4 /* View+FocusEffectDisabled.swift in Sources */,
 				986DC80C2CFE447600447DC7 /* EditRuleForm.swift in Sources */,
 				989B17F32C16FC550039441B /* BrowsersTab.swift in Sources */,
 				986DC8092CFE42EB00447DC7 /* Rule.swift in Sources */,
+				F327559DEEEF50A27EDE6AEF /* LinkLog.swift in Sources */,
+				404EE5345986C71C34BBE2FD /* SourceApp.swift in Sources */,
 				989B17F72C16FD260039441B /* GeneralTab.swift in Sources */,
 				986DC8072CFE42E300447DC7 /* RulesTab.swift in Sources */,
 				989B17FD2C17400A0039441B /* EditAppForm.swift in Sources */,
@@ -449,7 +461,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0.4;
-				PRODUCT_BUNDLE_IDENTIFIER = com.indranandjha.LinkRouter;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rehob.BrowserSelector;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -486,7 +498,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.0.4;
-				PRODUCT_BUNDLE_IDENTIFIER = com.indranandjha.LinkRouter;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rehob.BrowserSelector;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

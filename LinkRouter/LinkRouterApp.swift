@@ -123,6 +123,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     
     func application(_ application: NSApplication, open urls: [URL]) {
+        // Identify the sender first: everything below can activate this app,
+        // and once that happens the answer is always "us".
+        let source = SourceApp.capture()
+
         var processedUrls = urls
         
         if urls.count == 1 {
@@ -136,9 +140,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 }
             }
 
-            let urlString = processedUrls.first!.absoluteString
+            // Resolve redirect wrappers before matching. An Outlook SafeLink
+            // presents its own host, so a rule written against the real host
+            // would never fire on work mail.
+            let original = processedUrls[0]
+            processedUrls = [original.unwrapped]
+
+            let urlString = processedUrls[0].absoluteString
 
             for rule in rules where rule.matches(urlString) {
+                LinkLog.record(original: original, unwrapped: processedUrls[0],
+                               source: source, routedTo: rule.app.lastPathComponent)
                 BrowserUtil.openURL(
                     processedUrls,
                     app: rule.app,
@@ -146,6 +158,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 )
                 return
             }
+
+            LinkLog.record(original: original, unwrapped: processedUrls[0],
+                           source: source, routedTo: "prompt")
         }
         
         if selectorWindow == nil {
