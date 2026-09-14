@@ -1,0 +1,5 @@
+{"event":"launched","ts":"2026-09-14T18:22:50Z"}
+{"frontmost":"local.probe.roundtrip","frontmostName":"RoundTripProbe","host":"example.com","menuBarOwning":"com.anthropic.claudefordesktop","ts":"2026-09-14T18:23:03Z","url":"https://example.com/roundtrip-test"}
+{"event":"forwarded","ok":true}
+{"frontmost":"local.probe.roundtrip","frontmostName":"RoundTripProbe","host":"example.com","menuBarOwning":"com.apple.finder","ts":"2026-09-14T18:23:28Z","url":"https://example.com/from-finder"}
+{"event":"forwarded","ok":true}

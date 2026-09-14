@@ -1,0 +1,97 @@
+name: Release
+
+# Every push to main becomes a release:
+#   - version auto-increments from the latest v* tag (patch by default;
+#     put #minor or #major in the commit message to bump bigger)
+#   - put [skip release] in the commit message to push without releasing
+#   - the app is built and ad-hoc signed on CI, attached to a GitHub
+#     release, and the Homebrew tap cask is updated so `brew upgrade`
+#     picks it up
+#
+# Requires the TAP_DEPLOY_KEY secret: a write deploy key for
+# indranandjha1993/homebrew-tap.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: "!contains(github.event.head_commit.message, '[skip release]')"
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Unit tests
+        run: swift test
+
+      - name: Compute next version
+        id: version
+        run: |
+          LATEST=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "v1.0.0")
+          BASE="${LATEST#v}"
+          IFS=. read -r MAJOR MINOR PATCH <<< "$BASE"
+          MSG=$(git log -1 --pretty=%B)
+          if [[ "$MSG" == *"#major"* ]]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif [[ "$MSG" == *"#minor"* ]]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+          VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing v$VERSION (previous: $LATEST)"
+
+      - name: Build, sign, zip
+        # The full bundle must be ad-hoc signed: Xcode's linker-only
+        # signature fails Gatekeeper's bundle validation.
+        run: |
+          xcodebuild -project LinkRouter.xcodeproj -scheme LinkRouter \
+            -configuration Release SYMROOT="$PWD/build" -quiet \
+            MARKETING_VERSION="${{ steps.version.outputs.version }}" build
+          codesign --force --deep -s - build/Release/LinkRouter.app
+          codesign -v --deep --strict build/Release/LinkRouter.app
+          ditto -c -k --keepParent build/Release/LinkRouter.app build/Release/LinkRouter.app.zip
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            build/Release/LinkRouter.app.zip \
+            --title "LinkRouter ${{ steps.version.outputs.version }}" \
+            --generate-notes
+
+      - name: Update Homebrew tap
+        env:
+          TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          SHA=$(shasum -a 256 build/Release/LinkRouter.app.zip | awk '{print $1}')
+
+          mkdir -p ~/.ssh
+          echo "$TAP_DEPLOY_KEY" > ~/.ssh/tap_deploy_key
+          chmod 600 ~/.ssh/tap_deploy_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/tap_deploy_key -o IdentitiesOnly=yes"
+
+          git clone --depth 1 git@github.com:indranandjha1993/homebrew-tap.git tap
+          cd tap
+          sed -i '' \
+            -e "s/version \"[^\"]*\"/version \"$VERSION\"/" \
+            -e "s/sha256 \"[^\"]*\"/sha256 \"$SHA\"/" \
+            Casks/linkrouter.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "linkrouter $VERSION"
+          git push

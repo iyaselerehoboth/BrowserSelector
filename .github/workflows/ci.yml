@@ -1,0 +1,18 @@
+name: CI
+
+# Pull-request checks; pushes to main are covered by release.yml,
+# which runs the same tests and build before publishing.
+on:
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unit tests
+        run: swift test
+
+      - name: Build app
+        run: xcodebuild -project LinkRouter.xcodeproj -scheme LinkRouter -configuration Release build
