@@ -29,21 +29,28 @@ Built to keep work in Chrome and everything else in Dia on the same machine.
 
 ## Build and install
 
-Building the `.app` needs **Xcode.app**; Command Line Tools alone is not
-enough (no `xcodebuild`, no asset-catalog compiler, no SwiftUI macro plugins).
-
 ```bash
-xcodebuild -project BrowserSelector.xcodeproj -scheme BrowserSelector -configuration Release build
+./scripts/build-install.sh
 ```
 
-In Xcode, set Signing & Capabilities → Team **None**, Signing Certificate
-**Sign to Run Locally**. No Apple Developer Program membership and no
-notarization are needed for a build you run yourself.
+Builds Release, signs ad-hoc, installs to `/Applications`, and registers with
+LaunchServices. Then open it once and pick it under **System Settings →
+Desktop & Dock → Default web browser**.
 
-Then copy the `.app` into `/Applications` or `~/Applications` — **a bundle
-outside those locations is silently ignored by LaunchServices** and never
-appears as a browser option. Launch it once, then choose it under
-**System Settings → Desktop & Dock → Default web browser**.
+Building needs **Xcode.app**; Command Line Tools alone is not enough. The
+script sets `DEVELOPER_DIR` itself, so it works without
+`sudo xcode-select -s` and needs no admin password. No Apple Developer Program
+membership and no notarization are required for a build you run yourself.
+
+Three things the script handles that are easy to get wrong:
+
+- The project inherits upstream's `DEVELOPMENT_TEAM` and `"Don't Code Sign"`;
+  both are overridden to an ad-hoc signature.
+- `xcodebuild` emits a *linker-signed* binary whose signing identifier is
+  `BrowserSelector` rather than the bundle id, so it is re-signed.
+- The bundle must land in `/Applications` or `~/Applications`. **LaunchServices
+  silently ignores a bundle anywhere else** — it never appears as a browser
+  option, with no error of any kind.
 
 ## Development
 
