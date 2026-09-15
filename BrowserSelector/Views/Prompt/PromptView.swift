@@ -17,11 +17,17 @@ struct PromptView: View {
     @AppStorage("copy_closeAfterCopy") private var closeAfterCopy: Bool = false
     @AppStorage("copy_alternativeShortcut") private var alternativeShortcut: Bool = false
     @AppStorage("apps_atTop") private var appsAtTop: Bool = true
+    @AppStorage("rules") private var rules: [Rule] = []
 
     let urls: [URL]
 
     @State private var opacityAnimation = 0.0
     @State private var selected = 0
+
+    /// Opt-in only, and deliberately not persisted. Choosing a browser must
+    /// never imply "and remember this" — a fresh PromptView is constructed for
+    /// every prompt, so this starts off each time the picker appears.
+    @State private var alwaysForHost = false
     @FocusState private var focused: Bool
 
     var appsForUrls: [App] {
@@ -61,11 +67,32 @@ struct PromptView: View {
         case .app(let app):
             openUrlsInApp(app: app)
         case .browser(let browser):
-            BrowserUtil.openURL(urls, app: browser, isIncognito: isIncognito)
+            openBrowser(browser, isIncognito: isIncognito)
         }
     }
 
+    private var promptHost: String? {
+        urls.first?.host()
+    }
+
+    /// Persists a host rule, but only because the user ticked the box.
+    private func rememberIfRequested(_ target: URL) {
+        guard alwaysForHost, let host = promptHost else { return }
+
+        let rule = Rule.forHost(host, app: target)
+        guard !rules.contains(where: { $0.regex == rule.regex }) else { return }
+
+        rules.append(rule)
+    }
+
+    private func openBrowser(_ browser: URL, isIncognito: Bool) {
+        rememberIfRequested(browser)
+        BrowserUtil.openURL(urls, app: browser, isIncognito: isIncognito)
+    }
+
     func openUrlsInApp(app: App) {
+        rememberIfRequested(app.app)
+
         let urls =
             if app.schemeOverride.isEmpty {
                 urls
@@ -125,9 +152,8 @@ struct PromptView: View {
                                     bundle: bundle,
                                     shortcut: bundle.bundleIdentifier.flatMap { shortcuts[$0] }
                                 ) {
-                                    BrowserUtil.openURL(
-                                        urls,
-                                        app: browser,
+                                    openBrowser(
+                                        browser,
                                         isIncognito: NSEvent.modifierFlags.contains(.shift)
                                     )
                                 }
@@ -194,6 +220,12 @@ struct PromptView: View {
                     }) {}
                     .opacity(0)
                     .keyboardShortcut(.cancelAction)
+
+                    Button(action: {
+                        alwaysForHost.toggle()
+                    }) {}
+                    .opacity(0)
+                    .keyboardShortcut(KeyEquivalent("a"), modifiers: [.command])
                 }
                 .onAppear {
                     focused.toggle()
@@ -207,25 +239,35 @@ struct PromptView: View {
             Divider()
 
             if let host = urls.first?.host() {
-                Button(action: {
-                    let pasteboard = NSPasteboard.general
-                    pasteboard.declareTypes([.string], owner: nil)
-                    pasteboard.setString(urls.first?.absoluteString ?? "", forType: .string)
+                HStack(spacing: 8) {
+                    Button(action: {
+                        let pasteboard = NSPasteboard.general
+                        pasteboard.declareTypes([.string], owner: nil)
+                        pasteboard.setString(urls.first?.absoluteString ?? "", forType: .string)
 
-                    if closeAfterCopy {
-                        NSApplication.shared.keyWindow?.close()
+                        if closeAfterCopy {
+                            NSApplication.shared.keyWindow?.close()
+                        }
+                    }) {
+                        Text(
+                            host
+                        )
                     }
-                }) {
-                    Text(
-                        host
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(
+                        KeyEquivalent("c"),
+                        modifiers: alternativeShortcut ? [.command] : [.command, .option]
                     )
+                    .toolTip(urls.first?.absoluteString ?? "")
+
+                    Spacer(minLength: 8)
+
+                    Toggle(isOn: $alwaysForHost) {
+                        Text("Always")
+                    }
+                    .toggleStyle(.checkbox)
+                    .toolTip("Always open \(host) in the browser you pick next, skipping this prompt (⌘A)")
                 }
-                .buttonStyle(.plain)
-                .keyboardShortcut(
-                    KeyEquivalent("c"),
-                    modifiers: alternativeShortcut ? [.command] : [.command, .option]
-                )
-                .toolTip(urls.first?.absoluteString ?? "")
             }
         }
         .padding(12)
