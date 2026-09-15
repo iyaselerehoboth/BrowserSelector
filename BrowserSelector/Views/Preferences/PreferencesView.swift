@@ -22,37 +22,37 @@ struct PreferencesView: View {
         TabView {
             GeneralTab()
                 .tabItem {
-                    Label("General", systemImage: "gear")
+                    Label("General", systemImage: "gearshape")
                 }
                 .tag(0)
             
             BrowsersTab()
                 .tabItem {
-                    Label("Browsers", systemImage: "gear")
+                    Label("Browsers", systemImage: "globe")
                 }
                 .tag(1)
             
             AppsTab()
                 .tabItem {
-                    Label("Apps", systemImage: "gear")
+                    Label("Apps", systemImage: "square.grid.2x2")
                 }
                 .tag(2)
             
             RulesTab()
                 .tabItem {
-                    Label("Rules", systemImage: "gear")
+                    Label("Rules", systemImage: "arrow.triangle.branch")
                 }
                 .tag(3)
             
             BrowserSearchLocationsTab()
                 .tabItem {
-                    Label("Locations", systemImage: "gear")
+                    Label("Locations", systemImage: "folder")
                 }
                 .tag(4)
 
             AboutTab()
                 .tabItem {
-                    Label("About", systemImage: "gear")
+                    Label("About", systemImage: "info.circle")
                 }
                 .tag(5)
         }
