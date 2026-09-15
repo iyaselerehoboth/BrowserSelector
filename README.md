@@ -66,12 +66,28 @@ Two traps worth knowing:
 
 - Every non-source entry under the target path must stay listed in
   `Package.swift`'s `exclude:`, or SwiftPM tries to run `actool` on the asset
-  catalog and fails with a confusing decode error.
-- `swift test` intermittently fails with
-  `plugin for module 'TestingMacros' not found` — measured at roughly one run
-  in three, unrelated to whether the build is clean or incremental. It is a
-  macro-plugin resolution flake in Command Line Tools, not a real error; just
-  re-run. Expected to stop once Xcode is installed and supplies the plugin.
+  catalog. Xcode supplies `actool`, so this only bites on a machine with just
+  Command Line Tools — the exclusions are kept so the package stays buildable
+  there.
+- `swift test` used to fail intermittently with
+  `plugin for module 'TestingMacros' not found` (~1 run in 3). That was
+  Command Line Tools failing to resolve the macro plugin; it stops once Xcode
+  is the active toolchain (`xcode-select -p` should print
+  `/Applications/Xcode.app/Contents/Developer`, settable via Xcode → Settings
+  → Locations → Command Line Tools).
+
+To check the **app** target, build it — 9s cold, under a second warm:
+
+```bash
+xcodebuild -project BrowserSelector.xcodeproj -scheme BrowserSelector \
+  -configuration Debug -derivedDataPath .dd \
+  CODE_SIGN_IDENTITY="-" DEVELOPMENT_TEAM="" build
+```
+
+Standalone `swiftc -typecheck` does not work on the app target, for two
+reasons that are not worth fighting: `#Preview` blocks parse as stray
+top-level expressions outside a real target build, and asset-catalog symbols
+like `NSImage.menuIcon` only exist once the catalog is compiled.
 
 ### Recovery
 
