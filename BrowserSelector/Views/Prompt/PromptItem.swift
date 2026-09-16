@@ -16,10 +16,17 @@ struct PromptItem: View {
     
     var body: some View {
         Button(action: action) {
-            HStack {
+            HStack(spacing: 10) {
+                Image(
+                    nsImage: NSWorkspace.shared.icon(
+                        forFile: bundle.bundlePath
+                    )
+                )
+                .resizable()
+                .frame(width: 24, height: 24)
                 Text(bundle.appDisplayName)
                     .font(
-                        .system(size: 12, weight: .bold)
+                        .system(size: 13, weight: .medium)
                     )
                 
                 Spacer()
@@ -35,17 +42,7 @@ struct PromptItem: View {
                         )
                         .cornerRadius(4)
                 }
-                
-                Spacer()
-                    .frame(width: 8)
-                
-                Image(
-                    nsImage: NSWorkspace.shared.icon(
-                        forFile: bundle.bundlePath
-                    )
-                )
-                .resizable()
-                .frame(width: 24, height: 24)
+
             }
             .padding(8)
         }

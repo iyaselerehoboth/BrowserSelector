@@ -9,8 +9,8 @@ import Foundation
 import AppKit
 
 class BrowserSelectorWindow: NSPanel {
-    static let selectorWidth: CGFloat = 250
-    static let selectorHeight: CGFloat = 200
+    static let selectorWidth: CGFloat = 320
+    static let selectorHeight: CGFloat = 360
     
     public convenience init() {
         self.init(

@@ -116,7 +116,19 @@ struct PromptView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Open link in…")
+                    .font(.headline)
+                Text(promptHost ?? "Choose an application")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help(urls.first?.absoluteString ?? "")
+            }
+            .padding(.horizontal, 8)
+
             ScrollViewReader { scrollViewProxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 2) {
@@ -228,7 +240,7 @@ struct PromptView: View {
                     .keyboardShortcut(KeyEquivalent("a"), modifiers: [.command])
                 }
                 .onAppear {
-                    focused.toggle()
+                    focused = true
                     withAnimation(.interactiveSpring(duration: 0.3)) {
                         opacityAnimation = 1
                     }
@@ -249,9 +261,8 @@ struct PromptView: View {
                             NSApplication.shared.keyWindow?.close()
                         }
                     }) {
-                        Text(
-                            host
-                        )
+                        Label("Copy link", systemImage: "link")
+                            .font(.caption)
                     }
                     .buttonStyle(.plain)
                     .keyboardShortcut(
@@ -262,12 +273,22 @@ struct PromptView: View {
 
                     Spacer(minLength: 8)
 
-                    Toggle(isOn: $alwaysForHost) {
-                        Text("Always")
-                    }
-                    .toggleStyle(.checkbox)
-                    .toolTip("Always open \(host) in the browser you pick next, skipping this prompt (⌘A)")
+                    Text("↑↓ Choose · ↵ Open")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+
+                Toggle(isOn: $alwaysForHost) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Always use my choice")
+                            .font(.system(size: 12, weight: .medium))
+                        Text("For this website and its subdomains")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .toggleStyle(RememberWebsiteToggleStyle())
+                .help("Save a rule for \(host) when you choose an app. Manage saved rules in Preferences.")
             }
         }
         .padding(12)
@@ -283,4 +304,29 @@ struct PromptView: View {
 
 #Preview {
     PromptView(urls: [])
+}
+
+/// A plain button avoids the faint native checkbox rendering inside the
+/// nonactivating panel; the whole label is clickable and retains toggle semantics.
+private struct RememberWebsiteToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            HStack(spacing: 9) {
+                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(configuration.isOn ? Color.accentColor : Color.primary)
+                configuration.label
+                Spacer(minLength: 0)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .background(configuration.isOn ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.04))
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(configuration.isOn ? "On" : "Off")
+    }
 }
