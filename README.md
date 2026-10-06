@@ -1,82 +1,17 @@
-![BrowserSelector](images/browserselector.png?v2)
+# BrowserSelector
 
-**BrowserSelector** routes every link you click into the right browser. Set it
-as the macOS default browser and a picker appears at the cursor; choose with
-the mouse, arrow keys, or a per-browser shortcut, or let a rule route it
-silently.
+A native macOS URL router written in Swift and SwiftUI. It registers as an HTTP(S) handler, applies routing rules, and presents a browser/profile picker when no rule matches.
 
-Built to keep work in Chrome and everything else in Dia on the same machine.
+This README is for contributors and maintainers. User-facing setup and feature information lives in [the landing page](website/index.html). See [website deployment](docs/website-deployment.md) to publish it on GitHub Pages.
 
-## Features
+## Development requirements
 
-- Native SwiftUI — instant popup, tiny footprint, no Electron
-- Per-browser keyboard shortcuts
-- Regex rules that route matching URLs with no prompt
-- Browser profile support
-- **Unwraps redirect wrappers** before matching — Outlook SafeLinks, Google
-  `/url`, LinkedIn, Facebook, Reddit. Without this, every rule written against
-  a real host silently fails on work mail, because the link arrives as
-  `*.safelinks.protection.outlook.com`
-- **Records the sending app** for each link, so source-based rules ("anything
-  from Slack → Chrome") can be designed against real data
-- macOS 13+, Apple Silicon and Intel
+- macOS 13 or later to run the app.
+- Full Xcode.app to build the macOS target; Command Line Tools alone cannot compile its asset catalog and SwiftUI previews.
+- A Swift toolchain supporting `swift-testing` to run the Foundation-only test target.
+- Safari 17+, English menus, and Accessibility authorization for live Safari profile routing tests.
 
-## In action
-
-| The picker | Preferences |
-|:---:|:---:|
-| <img src="images/screenshot-prompt.png" width="380" alt="The picker — choose a browser for the clicked link"> | <img src="images/screenshot-preferences.png" width="500" alt="Preferences — General tab"> |
-
-## Build and install
-
-```bash
-./scripts/build-install.sh
-```
-
-Builds Release, signs ad-hoc, installs to `/Applications`, and registers with
-LaunchServices. Then open it once and pick it under **System Settings →
-Desktop & Dock → Default web browser**.
-
-Building needs **Xcode.app**; Command Line Tools alone is not enough. The
-script sets `DEVELOPER_DIR` itself, so it works without
-`sudo xcode-select -s` and needs no admin password. No Apple Developer Program
-membership and no notarization are required for a build you run yourself.
-
-Three things the script handles that are easy to get wrong:
-
-- The project inherits upstream's `DEVELOPMENT_TEAM` and `"Don't Code Sign"`;
-  both are overridden to an ad-hoc signature.
-- `xcodebuild` emits a *linker-signed* binary whose signing identifier is
-  `BrowserSelector` rather than the bundle id, so it is re-signed.
-- The bundle must land in `/Applications` or `~/Applications`. **LaunchServices
-  silently ignores a bundle anywhere else** — it never appears as a browser
-  option, with no error of any kind.
-
-## Development
-
-```bash
-swift test          # 35 tests, no Xcode required
-```
-
-The SwiftPM package compiles only the pure logic (rules, host matching, URL
-unwrapping) so the suite runs on Command Line Tools alone. Tests use
-**swift-testing**, not XCTest — XCTest ships inside Xcode.app.
-
-Two traps worth knowing:
-
-- Every non-source entry under the target path must stay listed in
-  `Package.swift`'s `exclude:`, or SwiftPM tries to run `actool` on the asset
-  catalog. Xcode supplies `actool`, so this only bites on a machine with just
-  Command Line Tools — the exclusions are kept so the package stays buildable
-  there.
-- `swift test` used to fail intermittently with
-  `plugin for module 'TestingMacros' not found` (~1 run in 3). That was
-  Command Line Tools failing to resolve the macro plugin; it stops once Xcode
-  is the active toolchain (`xcode-select -p` should print
-  `/Applications/Xcode.app/Contents/Developer`, settable via Xcode → Settings
-  → Locations → Command Line Tools).
-
-To check the **app** target, build it — 9s cold, under a second warm:
+Clone the repository and open `BrowserSelector.xcodeproj`, or build from the command line:
 
 ```bash
 xcodebuild -project BrowserSelector.xcodeproj -scheme BrowserSelector \
@@ -84,55 +19,101 @@ xcodebuild -project BrowserSelector.xcodeproj -scheme BrowserSelector \
   CODE_SIGN_IDENTITY="-" DEVELOPMENT_TEAM="" build
 ```
 
-Standalone `swiftc -typecheck` does not work on the app target, for two
-reasons that are not worth fighting: `#Preview` blocks parse as stray
-top-level expressions outside a real target build, and asset-catalog symbols
-like `NSImage.menuIcon` only exist once the catalog is compiled.
+The app requires compiled asset symbols and a real Xcode target; standalone `swiftc -typecheck` does not validate it. Signing overrides let you build locally without configuring an Apple developer team.
 
-### Recovery
+## Architecture
 
-`spike/` holds the harness used to verify default-browser registration. If a
-broken build is left as the system default and links stop opening:
+| Area | Responsibility |
+| --- | --- |
+| `BrowserSelectorApp.swift` | Receive URLs, capture source context, unwrap supported redirects, apply rules, present the picker. |
+| `Models/BrowserUtil.swift` | Discover installed URL handlers and launch browser destinations. |
+| `Models/BrowserProfile.swift` | Parse Chromium profile metadata, construct launch arguments, and parse Safari profile menu names. Foundation-only. |
+| `Models/SafariProfiles.swift` | Discover and open Safari profile windows through Accessibility. |
+| `Models/Rule.swift` | Persist regex routing rules with an optional profile destination; decode older rules without that field. |
+| `Views/Prompt/` | Browser/profile selection, keyboard navigation, and opt-in website remembering. |
+| `Views/Preferences/` | Browser visibility/order, shortcuts, rules, settings, and debug routing tools. |
+| `Tests/` | SwiftPM tests for pure routing and parsing logic. |
+| `scripts/` | Local Release installation and universal DMG packaging. |
+| `website/` | Standalone user-facing static site; no build dependencies. |
+
+Preferences and rules use local app settings. Profile discovery reads Chromium `Local State` metadata at standard macOS locations and confirms the profile directory exists. Launch arguments pass each value separately. Browser-default rows retain their existing shortcuts.
+
+Safari uses the File menu’s named window actions, confirms a new focused window, then enters the URL in that window’s address field. It caches profile names for later launches. It does not read Safari history/cookies, request Full Disk Access, use AppleScript, or modify Safari website-routing preferences.
+
+## Behavior to preserve
+
+- Remembering is opt-in for each picker prompt. “Always use my choice” starts unchecked; selecting a destination alone never saves a rule.
+- A remembered website includes its subdomains. Rules may carry a profile destination, and old rules remain valid.
+- Removed or unreadable Chromium profiles fall back to the browser default.
+- Missing Safari permissions, renamed/removed profiles, and unconfirmed windows produce an error and leave the link unopened.
+- Safari profile identity is its menu name; renamed profiles must be selected again in rules. Chromium uses directory IDs.
+- Named Safari profiles do not support private mode. Other browsers use their configured private-mode argument when Shift is held.
+- Firefox profiles and custom Chromium user-data locations are outside the current implementation.
+
+## Validation
 
 ```bash
-cd spike && swiftc -o setdefault setdefault.swift && ./setdefault "/Applications/Google Chrome.app"
+swift test
 ```
 
-Note that `NSWorkspace.setDefaultApplication` reports
-`https: The file couldn't be opened.` even when it succeeds — verify with
-`urlForApplication(toOpen:)` rather than trusting the error.
+The suite currently contains 53 tests and compiles only pure logic. Keep non-source items and AppKit-dependent files in `Package.swift` exclusions so SwiftPM does not invoke asset compilation. If `TestingMacros` fails to resolve, verify the active Xcode toolchain in Xcode → Settings → Locations → Command Line Tools.
 
-## Credits
+For live checks, run a Debug app and open **Preferences → Browsers → Test routing…**. The sheet supports an HTTP(S) URL, a browser/profile destination, private mode, profile refresh, and opening the real picker. These controls are excluded from Release builds. Verify the actual URL and receiving profile in the browser; an opening request alone is not proof of success.
 
-A personal fork of [**LinkRouter**](https://github.com/indranandjha1993/LinkRouter)
-by [Indranand Jha](https://github.com/indranandjha1993), which is itself a fork
-of [**Browserino**](https://github.com/AlexStrNik/Browserino) by
-[Aleksandr Strizhnev](https://github.com/AlexStrNik) — full credit for the
-original design and implementation belongs to him and the Browserino
-contributors. If you find this useful, consider
-[supporting the original author](https://alexstrnik.gumroad.com/l/browserino).
+Safari and Chrome live routing was verified on 2026-10-06. The [implementation and validation record](docs/browser-profiles-plan.md) describes coverage and remaining cases, including cold starts, revoked permissions, profile changes, and full picker interaction. Unit tests do not cover macOS Accessibility behavior.
 
-Browserino was in turn inspired by
-[Browserosaurus](https://github.com/will-stone/browserosaurus).
+## Build and install locally
 
-Licensed GPL-3.0, as required by its upstreams.
+```bash
+./scripts/build-install.sh
+```
 
-### Browser profiles
+This builds Release, signs the app ad hoc with the bundle identifier, replaces `/Applications/BrowserSelector.app`, and registers it with LaunchServices. It stops a running BrowserSelector first. Installing a new signature may require renewing Accessibility authorization.
 
-The picker automatically lists named profiles for Chrome, Chromium, Microsoft Edge, and Brave at their standard macOS data locations, including supported preview channels. Choose a profile by clicking its row or using arrow keys and Return. Hold Shift to use the browser’s configured private-mode argument. The original browser row and shortcut continue to use the browser default.
+Open the installed app and use **Preferences → General → Make default**. Confirm default browser registration before testing incoming links. The install script sets `DEVELOPER_DIR` to Xcode without changing the system toolchain setting.
 
-“Always use my choice” remembers the selected profile for the website and its subdomains. You can also choose a profile when adding or editing a rule in Preferences. Profiles are refreshed whenever the picker opens; removed or unreadable Chromium profiles fall back to the browser default. Firefox and custom user-data locations currently use ordinary browser selection.
+## Package for sharing
 
-#### Safari profiles
+```bash
+./scripts/package-dmg.sh
+```
 
-Safari profile selection is opt-in in **Preferences → Browsers → Enable Safari profile selection**. Allow BrowserSelector in **System Settings → Privacy & Security → Accessibility**, open Safari, then use **Open Safari and refresh**. Create profiles first in Safari Settings → Profiles if none are listed.
+The script builds both `arm64` and `x86_64`, verifies the app signature and architectures, and creates `dist/BrowserSelector-<version>-universal.dmg` with a SHA-256 file. The DMG includes the app, an Applications shortcut, installation notes, GPL license, and corresponding working source archive. Generated artifacts are ignored by Git.
 
-This adapter requires Safari 17 or later and English Safari menus. It reads the named profile window actions from Safari’s File menu, including nested submenus, and caches profile names so saved destinations remain available when Safari is closed. Each selected link opens a new window for that profile and navigates directly in its address field. It uses neither Full Disk Access nor AppleScript Automation, and does not read Safari history or cookies or change Safari website-routing settings.
+These packages are ad-hoc signed and **not notarized**. A public distribution should use your own Developer ID signing/notarization setup. The source archive includes working-tree changes, so package from a reviewed tree when producing a release.
 
-Safari exposes names through these menu actions, so renamed profiles must be selected again in saved rules. If permission is missing, the profile is unavailable, or the new window cannot be confirmed, BrowserSelector shows an error and leaves the link unopened. Named profile rows do not support private mode; the ordinary Safari row retains its existing behavior.
+No release is currently published on this repository. The inherited `release.yml` targets `main` and references the upstream Homebrew tap; it is not configured for this fork’s `master` branch. Do not activate that workflow without replacing its signing/release settings and removing the upstream tap deployment.
 
-Validation: the app builds and all 53 logic tests pass. Live routing on 2026-10-06 succeeded for Default → Personal → Default, with the URL and profile confirmed from Safari’s accessibility state. Debug-only buttons exercise the same profile-opening function used by the picker. Cold starts, denied/revoked permission, nested menus, and full picker interaction still need release validation.
+## Landing page
 
-Live Chrome validation on 2026-10-06 also passed for all three local profiles (Office, babbangona.com, and Rehoboth), with the receiving profile and exact URL verified in Chrome. Debug-only test controls use the same opening function as the picker.
+The static site uses HTML, CSS, and a small browser-only picker demonstration. Preview it with:
 
-Debug builds expose a single **Test routing…** link in Browsers preferences. Its sheet provides a URL field, browser/profile selectors, private mode, profile refresh, and actions for direct routing or the picker. Release builds exclude the entire test interface.
+```bash
+python3 -m http.server 8000 --directory website
+```
+
+Open `http://localhost:8000`. The Pages workflow uploads **only `website/`**, keeping development notes and app source outside the deployed artifact. See [deployment instructions](docs/website-deployment.md) for repository visibility requirements and download configuration.
+
+## Contributing
+
+Keep routing changes small and document their fallback behavior. Add meaningful pure-logic tests when changing parsing, rules, or launch arguments; build the app for SwiftUI/AppKit changes. Browser integration changes also need a live check on the affected browser. Include the tested macOS/browser versions and any remaining limitations in the change description.
+
+Avoid committing local account metadata, browsing history, personal URLs, or generated app/DMG files. Preserve the GPL license and upstream attribution.
+
+## Recovery
+
+If a broken build is left as the default handler, the `spike/` harness can restore Chrome:
+
+```bash
+cd spike
+swiftc -o setdefault setdefault.swift
+./setdefault "/Applications/Google Chrome.app"
+```
+
+Verify the handler with `urlForApplication(toOpen:)`; `NSWorkspace.setDefaultApplication` can report an error despite changing the handler.
+
+## License and attribution
+
+GPL-3.0; see [LICENSE](LICENSE).
+
+This is a fork of [LinkRouter](https://github.com/indranandjha1993/LinkRouter) by [Indranand Jha](https://github.com/indranandjha1993), based on [Browserino](https://github.com/AlexStrNik/Browserino) by [Aleksandr Strizhnev](https://github.com/AlexStrNik) and its contributors. Browserino was inspired by [Browserosaurus](https://github.com/will-stone/browserosaurus). Consider [supporting Browserino’s original author](https://alexstrnik.gumroad.com/l/browserino).
