@@ -12,6 +12,7 @@ struct PromptItem: View {
     var urls: [URL]
     var bundle: Bundle
     var shortcut: String?
+    var profileLabel: String? = nil
     var action: () -> Void
     
     var body: some View {
@@ -24,10 +25,18 @@ struct PromptItem: View {
                 )
                 .resizable()
                 .frame(width: 24, height: 24)
-                Text(bundle.appDisplayName)
-                    .font(
-                        .system(size: 13, weight: .medium)
-                    )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(bundle.appDisplayName)
+                        .font(.system(size: 13, weight: .medium))
+                    if let profileLabel {
+                        Text(profileLabel)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .help(profileLabel)
+                    }
+                }
                 
                 Spacer()
                 

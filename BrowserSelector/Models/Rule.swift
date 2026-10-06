@@ -10,6 +10,7 @@ import Foundation
 struct Rule: Hashable, Codable {
     var regex: String
     var app: URL
+    var profileDirectory: String? = nil
 
     /// Whether this rule's pattern matches the URL. Matching is
     /// case-insensitive and unanchored. Empty and invalid patterns never
@@ -37,9 +38,9 @@ extension Rule {
     /// The host arrives from a clicked URL, so it is escaped rather than
     /// interpolated — otherwise a host containing regex metacharacters would
     /// build a pattern that matches far more than intended.
-    static func forHost(_ host: String, app: URL) -> Rule {
+    static func forHost(_ host: String, app: URL, profileDirectory: String? = nil) -> Rule {
         let escaped = NSRegularExpression.escapedPattern(for: host.lowercased())
         // Terminator allows a port, path, query or fragment, or end of string.
-        return Rule(regex: "^https?://([^/]*\\.)?\(escaped)(?:[:/?#]|$)", app: app)
+        return Rule(regex: "^https?://([^/]*\\.)?\(escaped)(?:[:/?#]|$)", app: app, profileDirectory: profileDirectory)
     }
 }

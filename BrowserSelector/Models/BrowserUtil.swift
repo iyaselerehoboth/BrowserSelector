@@ -64,8 +64,17 @@ class BrowserUtil {
         return filteredUrlsForApplications
     }
     
-    static func openURL(_ urls: [URL], app: URL, isIncognito: Bool) {
+    static func profiles(for bundleID: String) -> [BrowserProfile] {
+        bundleID == "com.apple.Safari" ? SafariProfiles.discover() : BrowserProfiles.discover(bundleID: bundleID)
+    }
+
+    static func openURL(_ urls: [URL], app: URL, isIncognito: Bool, profileDirectory: String? = nil) {
         guard let bundle = Bundle(url: app) else {
+            return
+        }
+
+        if bundle.bundleIdentifier == "com.apple.Safari", let profileDirectory {
+            SafariProfiles.open(urls, app: app, profile: profileDirectory, isIncognito: isIncognito)
             return
         }
 
@@ -74,9 +83,16 @@ class BrowserUtil {
 
         // Incognito needs a per-browser private-mode argument. Without one,
         // fall back to a normal open — dropping the URLs would lose the link.
-        if isIncognito, let privateArg, !privateArg.isEmpty {
+        let validProfile = profileDirectory.flatMap { directory in
+            guard let id = bundle.bundleIdentifier,
+                  BrowserProfiles.discover(bundleID: id).contains(where: { $0.directory == directory }) else { return nil as String? }
+            return directory
+        }
+        if validProfile != nil || (isIncognito && !(privateArg ?? "").isEmpty) {
             configuration.createsNewApplicationInstance = true
-            configuration.arguments = [privateArg] + urls.map(\.absoluteString)
+            configuration.arguments = BrowserProfiles.launchArguments(
+                profile: validProfile, privateArgument: isIncognito ? privateArg : nil, urls: urls
+            )
 
             NSWorkspace.shared.open(
                 [],

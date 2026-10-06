@@ -23,6 +23,7 @@ struct PromptView: View {
 
     @State private var opacityAnimation = 0.0
     @State private var selected = 0
+    @State private var profiles: [URL: [BrowserProfile]] = [:]
 
     /// Opt-in only, and deliberately not persisted. Choosing a browser must
     /// never imply "and remember this" — a fresh PromptView is constructed for
@@ -47,14 +48,21 @@ struct PromptView: View {
         browsers.filter { !hiddenBrowsers.contains($0) && Bundle(url: $0) != nil }
     }
 
+    private var browserChoices: [(browser: URL, profile: BrowserProfile?)] {
+        visibleBrowsers.flatMap { browser in
+            [(browser: browser, profile: nil as BrowserProfile?)] +
+                profiles[browser, default: []].map { (browser: browser, profile: Optional($0)) }
+        }
+    }
+
     private enum PromptEntry {
         case app(App)
-        case browser(URL)
+        case browser(URL, BrowserProfile?)
     }
 
     private var orderedEntries: [PromptEntry] {
         let appEntries = appsForUrls.map(PromptEntry.app)
-        let browserEntries = visibleBrowsers.map(PromptEntry.browser)
+        let browserEntries = browserChoices.map { PromptEntry.browser($0.browser, $0.profile) }
         return appsAtTop ? appEntries + browserEntries : browserEntries + appEntries
     }
 
@@ -66,8 +74,8 @@ struct PromptView: View {
         switch orderedEntries[selected] {
         case .app(let app):
             openUrlsInApp(app: app)
-        case .browser(let browser):
-            openBrowser(browser, isIncognito: isIncognito)
+        case .browser(let browser, let profile):
+            openBrowser(browser, isIncognito: isIncognito, profile: profile)
         }
     }
 
@@ -76,18 +84,18 @@ struct PromptView: View {
     }
 
     /// Persists a host rule, but only because the user ticked the box.
-    private func rememberIfRequested(_ target: URL) {
+    private func rememberIfRequested(_ target: URL, profile: BrowserProfile? = nil) {
         guard alwaysForHost, let host = promptHost else { return }
 
-        let rule = Rule.forHost(host, app: target)
+        let rule = Rule.forHost(host, app: target, profileDirectory: profile?.directory)
         guard !rules.contains(where: { $0.regex == rule.regex }) else { return }
 
         rules.append(rule)
     }
 
-    private func openBrowser(_ browser: URL, isIncognito: Bool) {
-        rememberIfRequested(browser)
-        BrowserUtil.openURL(urls, app: browser, isIncognito: isIncognito)
+    private func openBrowser(_ browser: URL, isIncognito: Bool, profile: BrowserProfile? = nil) {
+        rememberIfRequested(browser, profile: profile)
+        BrowserUtil.openURL(urls, app: browser, isIncognito: isIncognito, profileDirectory: profile?.directory)
     }
 
     func openUrlsInApp(app: App) {
@@ -155,18 +163,21 @@ struct PromptView: View {
                             Divider()
                         }
                         
-                        ForEach(Array(visibleBrowsers.enumerated()), id: \.offset) {
-                            index, browser in
+                        ForEach(Array(browserChoices.enumerated()), id: \.offset) {
+                            index, choice in
+                            let browser = choice.browser
                             if let bundle = Bundle(url: browser) {
                                 PromptItem(
                                     browser: browser,
                                     urls: urls,
                                     bundle: bundle,
-                                    shortcut: bundle.bundleIdentifier.flatMap { shortcuts[$0] }
+                                    shortcut: choice.profile == nil ? bundle.bundleIdentifier.flatMap { shortcuts[$0] } : nil,
+                                    profileLabel: choice.profile?.label ?? (profiles[browser, default: []].isEmpty ? nil : "Browser default")
                                 ) {
                                     openBrowser(
                                         browser,
-                                        isIncognito: NSEvent.modifierFlags.contains(.shift)
+                                        isIncognito: NSEvent.modifierFlags.contains(.shift),
+                                        profile: choice.profile
                                     )
                                 }
                                 .id(index + (appsAtTop ? appsForUrls.count : 0))
@@ -191,10 +202,10 @@ struct PromptView: View {
                                     ) {
                                         openUrlsInApp(app: app)
                                     }
-                                    .id(visibleBrowsers.count + index)
+                                    .id(browserChoices.count + index)
                                     .buttonStyle(
                                         SelectButtonStyle(
-                                            selected: selected == visibleBrowsers.count + index
+                                            selected: selected == browserChoices.count + index
                                         )
                                     )
                                 }
@@ -240,6 +251,9 @@ struct PromptView: View {
                     .keyboardShortcut(KeyEquivalent("a"), modifiers: [.command])
                 }
                 .onAppear {
+                    profiles = Dictionary(uniqueKeysWithValues: visibleBrowsers.map { browser in
+                        (browser, Bundle(url: browser)?.bundleIdentifier.map { BrowserUtil.profiles(for: $0) } ?? [])
+                    })
                     focused = true
                     withAnimation(.interactiveSpring(duration: 0.3)) {
                         opacityAnimation = 1

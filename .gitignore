@@ -65,3 +65,6 @@ build/
 # macOS
 .DS_Store
 .dd/
+
+# Distribution artifacts
+dist/

@@ -64,7 +64,7 @@ struct RuleItem: View {
             Spacer()
 
 
-            Text(appName)
+            Text(rule.profileDirectory.map { "\(appName) — \($0)" } ?? appName)
                 .font(
                     .system(size: 14)
                 )

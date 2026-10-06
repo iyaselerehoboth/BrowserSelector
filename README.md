@@ -116,3 +116,23 @@ Browserino was in turn inspired by
 [Browserosaurus](https://github.com/will-stone/browserosaurus).
 
 Licensed GPL-3.0, as required by its upstreams.
+
+### Browser profiles
+
+The picker automatically lists named profiles for Chrome, Chromium, Microsoft Edge, and Brave at their standard macOS data locations, including supported preview channels. Choose a profile by clicking its row or using arrow keys and Return. Hold Shift to use the browser’s configured private-mode argument. The original browser row and shortcut continue to use the browser default.
+
+“Always use my choice” remembers the selected profile for the website and its subdomains. You can also choose a profile when adding or editing a rule in Preferences. Profiles are refreshed whenever the picker opens; removed or unreadable Chromium profiles fall back to the browser default. Firefox and custom user-data locations currently use ordinary browser selection.
+
+#### Safari profiles
+
+Safari profile selection is opt-in in **Preferences → Browsers → Enable Safari profile selection**. Allow BrowserSelector in **System Settings → Privacy & Security → Accessibility**, open Safari, then use **Open Safari and refresh**. Create profiles first in Safari Settings → Profiles if none are listed.
+
+This adapter requires Safari 17 or later and English Safari menus. It reads the named profile window actions from Safari’s File menu, including nested submenus, and caches profile names so saved destinations remain available when Safari is closed. Each selected link opens a new window for that profile and navigates directly in its address field. It uses neither Full Disk Access nor AppleScript Automation, and does not read Safari history or cookies or change Safari website-routing settings.
+
+Safari exposes names through these menu actions, so renamed profiles must be selected again in saved rules. If permission is missing, the profile is unavailable, or the new window cannot be confirmed, BrowserSelector shows an error and leaves the link unopened. Named profile rows do not support private mode; the ordinary Safari row retains its existing behavior.
+
+Validation: the app builds and all 53 logic tests pass. Live routing on 2026-10-06 succeeded for Default → Personal → Default, with the URL and profile confirmed from Safari’s accessibility state. Debug-only buttons exercise the same profile-opening function used by the picker. Cold starts, denied/revoked permission, nested menus, and full picker interaction still need release validation.
+
+Live Chrome validation on 2026-10-06 also passed for all three local profiles (Office, babbangona.com, and Rehoboth), with the receiving profile and exact URL verified in Chrome. Debug-only test controls use the same opening function as the picker.
+
+Debug builds expose a single **Test routing…** link in Browsers preferences. Its sheet provides a URL field, browser/profile selectors, private mode, profile refresh, and actions for direct routing or the picker. Release builds exclude the entire test interface.

@@ -29,6 +29,7 @@ let package = Package(
                 "BrowserSelectorWindow.swift",
                 "main.swift",
                 "Models/BrowserUtil.swift",
+                "Models/SafariProfiles.swift",
                 "Modifiers",
                 "Views",
                 "Extensions/View+FocusEffectDisabled.swift",
@@ -39,6 +40,7 @@ let package = Package(
             ],
             sources: [
                 "Models/Rule.swift",
+                "Models/BrowserProfile.swift",
                 "Extensions/URLExtensions.swift",
                 "Extensions/URLUnwrapping.swift",
                 "Extensions/Array+RawRepresentable.swift",
