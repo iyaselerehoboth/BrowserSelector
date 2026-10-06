@@ -25,7 +25,7 @@ Official guidance: [custom Pages workflows](https://docs.github.com/en/pages/get
 
 ## Enable public downloads
 
-The page deliberately states that no public package is published yet. Before changing that copy:
+Version 1.0.4 is linked from the landing page. For future releases:
 
 1. Build and validate a DMG using `scripts/package-dmg.sh`.
 2. Publish the DMG and checksum to a release or download host that your visitors can actually access. Preserve corresponding source and GPL attribution.

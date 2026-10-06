@@ -82,7 +82,7 @@ The script builds both `arm64` and `x86_64`, verifies the app signature and arch
 
 These packages are ad-hoc signed and **not notarized**. A public distribution should use your own Developer ID signing/notarization setup. The source archive includes working-tree changes, so package from a reviewed tree when producing a release.
 
-No release is currently published on this repository. The inherited `release.yml` targets `main` and references the upstream Homebrew tap; it is not configured for this fork’s `master` branch. Do not activate that workflow without replacing its signing/release settings and removing the upstream tap deployment.
+Download the universal DMG and checksum from [GitHub Releases](https://github.com/iyaselerehoboth/BrowserSelector/releases). The inherited `release.yml` targets `main` and references the upstream Homebrew tap; it is not configured for this fork’s `master` branch. Do not activate that workflow without replacing its signing/release settings and removing the upstream tap deployment.
 
 ## Landing page
 
