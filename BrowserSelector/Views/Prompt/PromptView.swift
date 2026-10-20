@@ -186,6 +186,9 @@ struct PromptView: View {
                                     isSelected: selected == index + (appsAtTop ? appsForUrls.count : 0),
                                     shortcutAction: {
                                         openBrowser(browser, isIncognito: NSEvent.modifierFlags.contains(.shift), profile: choice.profile)
+                                    },
+                                    doubleClickAction: {
+                                        openBrowser(browser, isIncognito: NSEvent.modifierFlags.contains(.shift), profile: choice.profile)
                                     }
                                 ) {
                                     selected = index + (appsAtTop ? appsForUrls.count : 0)
@@ -318,7 +321,7 @@ struct PromptView: View {
                 .help("Save a rule for \(host) when you choose an app. Manage saved rules in Preferences.")
             }
 
-            Text("↑ ↓ to choose · Return to open · Esc to dismiss")
+            Text("Double-click or Return to open · ↑ ↓ to choose · Esc to dismiss")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity)

@@ -5,6 +5,7 @@
 //  Created by Aleksandr Strizhnev on 10.06.2024.
 //
 
+import AppKit
 import SwiftUI
 
 struct PromptItem: View {
@@ -16,10 +17,20 @@ struct PromptItem: View {
     var profileName: String? = nil
     var isSelected: Bool = false
     var shortcutAction: (() -> Void)? = nil
+    var doubleClickAction: (() -> Void)? = nil
     var action: () -> Void
     
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            if let event = NSApp.currentEvent,
+               event.type == .leftMouseUp,
+               event.clickCount == 2,
+               let doubleClickAction {
+                doubleClickAction()
+            } else {
+                action()
+            }
+        }) {
             HStack(spacing: 10) {
                 Image(
                     nsImage: NSWorkspace.shared.icon(
