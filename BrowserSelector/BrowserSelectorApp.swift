@@ -176,19 +176,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         
         selectorWindow?.setFrameOrigin(
             NSPoint(
-                x: clamp(
-                    min: screen.minX + 20,
-                    max: screen.maxX - selectorWindow!.frame.width - 20,
-                    value: NSEvent.mouseLocation.x - selectorWindow!.frame.width / 2
-                ),
-                y: clamp(
-                    min: screen.minY + 20,
-                    max: screen.maxY - selectorWindow!.frame.height - 20,
-                    value: NSEvent.mouseLocation.y - (selectorWindow!.frame.height - 30)
-                )
+                x: screen.midX - selectorWindow!.frame.width / 2,
+                y: screen.midY - selectorWindow!.frame.height / 2
             )
         )
-        
+
         NSApplication.shared.activate(ignoringOtherApps: true)
         selectorWindow!.deactivateDelay()
         

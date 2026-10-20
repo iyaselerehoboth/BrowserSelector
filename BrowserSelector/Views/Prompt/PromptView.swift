@@ -124,10 +124,10 @@ struct PromptView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Open link in…")
-                    .font(.headline)
+                    .font(.system(size: 22, weight: .semibold))
                 Text(promptHost ?? "Choose an application")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -153,7 +153,7 @@ struct PromptView: View {
                                     }
                                     .id(index)
                                     .buttonStyle(
-                                        SelectButtonStyle(
+                                        PromptSelectionStyle(
                                             selected: selected == index
                                         )
                                     )
@@ -167,22 +167,33 @@ struct PromptView: View {
                             index, choice in
                             let browser = choice.browser
                             if let bundle = Bundle(url: browser) {
+                                if index == 0 || browserChoices[index - 1].browser != browser {
+                                    Text(bundle.appDisplayName.uppercased())
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .tracking(1)
+                                        .foregroundStyle(.secondary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.top, index == 0 ? 4 : 14)
+                                        .padding(.bottom, 4)
+                                }
                                 PromptItem(
                                     browser: browser,
                                     urls: urls,
                                     bundle: bundle,
                                     shortcut: choice.profile == nil ? bundle.bundleIdentifier.flatMap { shortcuts[$0] } : nil,
-                                    profileLabel: choice.profile?.label ?? (profiles[browser, default: []].isEmpty ? nil : "Browser default")
+                                    profileLabel: choice.profile?.email,
+                                    profileName: choice.profile?.name ?? (profiles[browser, default: []].isEmpty ? nil : "Browser default"),
+                                    isSelected: selected == index + (appsAtTop ? appsForUrls.count : 0),
+                                    shortcutAction: {
+                                        openBrowser(browser, isIncognito: NSEvent.modifierFlags.contains(.shift), profile: choice.profile)
+                                    }
                                 ) {
-                                    openBrowser(
-                                        browser,
-                                        isIncognito: NSEvent.modifierFlags.contains(.shift),
-                                        profile: choice.profile
-                                    )
+                                    selected = index + (appsAtTop ? appsForUrls.count : 0)
+                                    focused = true
                                 }
                                 .id(index + (appsAtTop ? appsForUrls.count : 0))
                                 .buttonStyle(
-                                    SelectButtonStyle(
+                                    PromptSelectionStyle(
                                         selected: selected == index + (appsAtTop ? appsForUrls.count : 0)
                                     )
                                 )
@@ -204,7 +215,7 @@ struct PromptView: View {
                                     }
                                     .id(browserChoices.count + index)
                                     .buttonStyle(
-                                        SelectButtonStyle(
+                                        PromptSelectionStyle(
                                             selected: selected == browserChoices.count + index
                                         )
                                     )
@@ -287,16 +298,18 @@ struct PromptView: View {
 
                     Spacer(minLength: 8)
 
-                    Text("↑↓ Choose · ↵ Open")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Button("Open", action: {
+                        openSelected(isIncognito: NSEvent.modifierFlags.contains(.shift))
+                    })
+                    .buttonStyle(.borderedProminent)
+                    .disabled(orderedEntries.isEmpty)
                 }
 
                 Toggle(isOn: $alwaysForHost) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Always use my choice")
+                        Text("Remember for this website")
                             .font(.system(size: 12, weight: .medium))
-                        Text("For this website and its subdomains")
+                        Text("Includes its subdomains")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -304,13 +317,18 @@ struct PromptView: View {
                 .toggleStyle(RememberWebsiteToggleStyle())
                 .help("Save a rule for \(host) when you choose an app. Manage saved rules in Preferences.")
             }
+
+            Text("↑ ↓ to choose · Return to open · Esc to dismiss")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
         }
-        .padding(12)
+        .padding(22)
         .frame(
             maxWidth: .infinity,
             maxHeight: .infinity
         )
-        .background(BlurredView())
+        .background(Color(nsColor: .windowBackgroundColor))
         .opacity(opacityAnimation)
         .edgesIgnoringSafeArea(.all)
     }
@@ -337,10 +355,23 @@ private struct RememberWebsiteToggleStyle: ToggleStyle {
             .padding(8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .background(configuration.isOn ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.04))
+
             .cornerRadius(8)
         }
         .buttonStyle(.plain)
         .accessibilityValue(configuration.isOn ? "On" : "Off")
+    }
+}
+
+private struct PromptSelectionStyle: ButtonStyle {
+    let selected: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(Color.primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 10))
+            .background(selected || configuration.isPressed ? Color.accentColor.opacity(0.12) : Color.clear)
+            .cornerRadius(10)
     }
 }

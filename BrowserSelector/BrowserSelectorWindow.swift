@@ -9,8 +9,8 @@ import Foundation
 import AppKit
 
 class BrowserSelectorWindow: NSPanel {
-    static let selectorWidth: CGFloat = 320
-    static let selectorHeight: CGFloat = 360
+    static let selectorWidth: CGFloat = 480
+    static let selectorHeight: CGFloat = 560
     
     public convenience init() {
         self.init(
@@ -28,7 +28,7 @@ class BrowserSelectorWindow: NSPanel {
         self.standardWindowButton(.closeButton)?.isHidden = true
         self.standardWindowButton(.zoomButton)?.isHidden = true
         
-        self.setFrameAutosaveName("prompt_Size")
+        self.setFrameAutosaveName("prompt_GroupedSize")
         
         self.collectionBehavior = [.stationary, .ignoresCycle, .fullScreenAuxiliary, .canJoinAllSpaces]
         self.isOpaque = false

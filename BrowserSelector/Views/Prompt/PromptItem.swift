@@ -13,6 +13,9 @@ struct PromptItem: View {
     var bundle: Bundle
     var shortcut: String?
     var profileLabel: String? = nil
+    var profileName: String? = nil
+    var isSelected: Bool = false
+    var shortcutAction: (() -> Void)? = nil
     var action: () -> Void
     
     var body: some View {
@@ -26,8 +29,8 @@ struct PromptItem: View {
                 .resizable()
                 .frame(width: 24, height: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(bundle.appDisplayName)
-                        .font(.system(size: 13, weight: .medium))
+                    Text(profileName ?? bundle.appDisplayName)
+                        .font(.system(size: 14, weight: .medium))
                     if let profileLabel {
                         Text(profileLabel)
                             .font(.caption)
@@ -40,6 +43,12 @@ struct PromptItem: View {
                 
                 Spacer()
                 
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+
                 if let shortcut {
                     Text(shortcut)
                         .font(.caption)
@@ -53,13 +62,17 @@ struct PromptItem: View {
                 }
 
             }
-            .padding(8)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
         }
         .if(shortcut?.lowercased().first != nil) {
             let key = KeyEquivalent(shortcut!.lowercased().first!)
-            return $0.keyboardShortcut(key, modifiers: [.shift])
+            return $0
                 .background {
-                    Button(action: action) {}
+                    Button(action: shortcutAction ?? action) {}
+                        .opacity(0)
+                        .keyboardShortcut(key, modifiers: [.shift])
+                    Button(action: shortcutAction ?? action) {}
                         .opacity(0)
                         .keyboardShortcut(key, modifiers: [])
                 }
