@@ -172,15 +172,19 @@ footer p:nth-child(3) { margin-left: auto; }
 
 /* Theme control stays visible alongside the download link on small screens. */
 .theme-toggle {
-  display: grid;
-  place-items: center;
-  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 88px;
   height: 40px;
-  padding: 9px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: 8px;
   cursor: pointer;
 }
 .theme-toggle[hidden] { display: none; }
@@ -234,5 +238,5 @@ footer p:nth-child(3) { margin-left: auto; }
 @media (max-width: 720px) { nav { gap: 10px; } }
 @media (max-width: 380px) {
   .nav { gap: 10px; flex-wrap: wrap; }
-  .theme-toggle { width: 36px; height: 36px; }
+  .theme-toggle { min-width: 80px; height: 36px; padding-inline: 8px; }
 }
