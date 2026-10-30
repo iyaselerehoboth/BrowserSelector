@@ -240,3 +240,6 @@ footer p:nth-child(3) { margin-left: auto; }
   .nav { gap: 10px; flex-wrap: wrap; }
   .theme-toggle { min-width: 80px; height: 36px; padding-inline: 8px; }
 }
+@media (max-width: 450px) {
+  nav > .nav-cta { display: none; }
+}
