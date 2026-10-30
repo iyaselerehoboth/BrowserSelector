@@ -4,7 +4,7 @@ let selected = '';
 function updateResult() {
   result.textContent = selected
     ? `Demo: ${selected} selected.${remember.checked ? ' This website choice would be remembered.' : ' You would choose again next time.'} No link was opened.`
-    : 'Try a destination above. This is a demo; no link opens.';
+    : 'Try the picker. This demo stays on this page.';
 }
 for (const button of document.querySelectorAll('[data-choice]')) {
   button.setAttribute('aria-pressed', 'false');
