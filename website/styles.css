@@ -209,8 +209,8 @@ footer p:nth-child(3) { margin-left: auto; }
 [data-theme="dark"] .skip { background: var(--surface); }
 [data-theme="dark"] .release-badge,
 [data-theme="dark"] .pill { color: #bdd0ff; }
-[data-theme="dark"] .primary { background: #5279ed; color: white; }
-[data-theme="dark"] .primary:hover { background: #4168dc; }
+[data-theme="dark"] .primary { background: #4168dc; color: white; }
+[data-theme="dark"] .primary:hover { background: #3158cc; }
 [data-theme="dark"] .demo-stage { background: #1b2841; border-color: var(--line); }
 [data-theme="dark"] .source-mark,
 [data-theme="dark"] .picker,
