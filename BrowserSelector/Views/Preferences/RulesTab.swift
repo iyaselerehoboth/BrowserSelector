@@ -1,116 +1,119 @@
-//
-//  RulesTab.swift
-//  BrowserSelector
-//
-//  Created by Aleksandr Strizhnev on 02.12.2024.
-//
-
+import AppKit
 import SwiftUI
-
-struct AddRule: View {
-    @State private var addPresented = false
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "plus")
-                .font(
-                    .system(size: 14)
-                )
-                .opacity(0)
-            
-            Text("Add a new rule by typing regex and selecting an app.")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Spacer()
-                .frame(width: 16)
-            
-            Button(action: {
-                addPresented.toggle()
-            }) {
-                Text("Add new rule")
-            }
-            .sheet(isPresented: $addPresented) {
-                NewRuleForm(
-                    isPresented: $addPresented
-                )
-            }
-        }
-    }
-}
-
-struct RuleItem: View {
-    @Binding var rule: Rule
-    @State private var editPresented = false
-    
-    var body: some View {
-        // The target app may have been uninstalled — keep the row visible so
-        // the rule can still be edited or deleted.
-        let appName = Bundle(url: rule.app)?.appDisplayName
-            ?? rule.app.deletingPathExtension().lastPathComponent + " (missing)"
-
-        HStack {
-            Button(action: {
-                editPresented.toggle()
-            }) {
-                Label(rule.regex, systemImage: "pencil")
-                    .font(
-                        .system(size: 14)
-                    )
-                    .foregroundStyle(.primary)
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-
-            Text(rule.profileDirectory.map { "\(appName) — \($0)" } ?? appName)
-                .font(
-                    .system(size: 14)
-                )
-
-
-            Spacer()
-                .frame(width: 8)
-
-            Image(nsImage: NSWorkspace.shared.icon(forFile: rule.app.path))
-                .resizable()
-                .frame(width: 32, height: 32)
-        }
-        .padding(10)
-        .sheet(isPresented: $editPresented) {
-            EditRuleForm(
-                rule: $rule,
-                isPresented: $editPresented
-            )
-        }
-    }
-}
 
 struct RulesTab: View {
     @AppStorage("rules") private var rules: [Rule] = []
-    
-    var body: some View {
-        VStack (alignment: .leading) {
-            List {
-                AddRule()
+    @State private var selection: Int?
+    @State private var adding = false
 
-                ForEach(Array($rules.enumerated()), id: \.offset) { offset, rule in
-                    RuleItem(
-                        rule: rule
-                    )
+    private func destination(_ rule: Rule) -> String {
+        let name = Bundle(url: rule.app)?.appDisplayName ?? rule.app.deletingPathExtension().lastPathComponent + " (missing)"
+        guard let directory = rule.profileDirectory else { return name }
+        let profile = Bundle(url: rule.app)?.bundleIdentifier.flatMap {
+            BrowserUtil.profiles(for: $0).first { $0.directory == directory }?.name
+        } ?? directory
+        return "\(name) · \(profile)"
+    }
+
+    private var editing: Bool {
+        adding || selection.map { rules.indices.contains($0) } == true
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let compact = geometry.size.width < 780
+            HStack(spacing: 0) {
+                if !compact || !editing {
+                    sidebar
+                        .frame(width: compact ? geometry.size.width : min(330, geometry.size.width * 0.4))
+                }
+                if !compact { Divider() }
+                if !compact || editing {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if compact {
+                            Button {
+                                selection = nil
+                                adding = false
+                            } label: {
+                                Label("All rules", systemImage: "chevron.left")
+                            }
+                            .padding([.top, .horizontal], 16)
+                        }
+                        editor
+                    }
+                    .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            
-            Text("Type regex and choose app in which links will be opened without prompt")
-                .font(.subheadline)
-                .foregroundStyle(.primary.opacity(0.5))
-                .frame(maxWidth: .infinity)
         }
-        .padding(.bottom, 20)
+        .onChange(of: selection) { _ in if selection != nil { adding = false } }
     }
-}
 
-#Preview {
-    RulesTab()
+    private var sidebar: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("Website rules").font(.title2.bold())
+                    Spacer()
+                    Button { adding = true; selection = nil } label: {
+                        Label("Add rule", systemImage: "plus")
+                    }
+                }
+                Text("Choose where each website opens.")
+                    .foregroundStyle(.secondary)
+                List(selection: $selection) {
+                    ForEach(rules.indices, id: \.self) { index in
+                        let rule = rules[index]
+                        HStack(spacing: 10) {
+                            Image(systemName: rule.website == nil ? "curlybraces" : "globe")
+                                .font(.title2).foregroundStyle(.secondary)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(rule.website?.host ?? rule.regex)
+                                    .fontWeight(.medium).lineLimit(1).truncationMode(.middle)
+                                Text(destination(rule)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                Text(rule.website.map { $0.includeSubdomains ? "Includes subdomains" : "Exact domain only" } ?? "Advanced regex")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 0)
+                            Image(nsImage: NSWorkspace.shared.icon(forFile: rule.app.path))
+                                .resizable().frame(width: 24, height: 24)
+                        }
+                        .padding(.vertical, 8)
+                        .tag(index)
+                    }
+                }
+                .listStyle(.sidebar)
+                Text("\(rules.count) rules").font(.caption).foregroundStyle(.secondary)
+            }
+            .padding(20)
+            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var editor: some View {
+            Group {
+                if adding {
+                    RuleForm(rule: nil, onCancel: { adding = false }, onSave: {
+                        rules.append($0)
+                        adding = false
+                        selection = rules.count - 1
+                    }, onDelete: {})
+                    .id("new")
+                } else if let index = selection, rules.indices.contains(index) {
+                    RuleForm(rule: rules[index], onCancel: { selection = nil }, onSave: {
+                        rules[index] = $0
+                    }, onDelete: {
+                        rules.remove(at: index)
+                        selection = nil
+                    })
+                    .id(index)
+                } else {
+                    VStack(spacing: 12) {
+                        Image(systemName: "arrow.triangle.branch").font(.largeTitle).foregroundStyle(.secondary)
+                        Text(rules.isEmpty ? "Add your first website rule" : "Select a website rule").font(.title3)
+                        Text("Matching links open automatically in the browser and profile you choose.")
+                            .foregroundStyle(.secondary).multilineTextAlignment(.center).frame(maxWidth: 300)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+    }
 }

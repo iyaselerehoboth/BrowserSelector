@@ -65,3 +65,37 @@ import Foundation
         #expect(rule("example.com").app == chrome)
     }
 }
+
+@Suite struct WebsiteRuleEditing {
+    let browser = URL(fileURLWithPath: "/Applications/Google Chrome.app")
+
+    @Test func recognizesExistingGeneratedRulesWithoutChangingPatterns() throws {
+        let original = Rule.forHost("sheet.zoho.com", app: browser, profileDirectory: "Profile 1")
+        let decoded = try JSONDecoder().decode(Rule.self, from: JSONEncoder().encode(original))
+        #expect(decoded.website?.host == "sheet.zoho.com")
+        #expect(decoded.website?.includeSubdomains == true)
+        #expect(decoded.profileDirectory == "Profile 1")
+        #expect(decoded.regex == original.regex)
+    }
+
+    @Test func exactDomainExcludesSubdomainsAndLookalikes() {
+        let rule = Rule.forHost("claude.ai", app: browser, includeSubdomains: false)
+        #expect(rule.website?.includeSubdomains == false)
+        #expect(rule.matches("https://claude.ai/new"))
+        #expect(!rule.matches("https://app.claude.ai/new"))
+        #expect(!rule.matches("https://claude.ai.evil.com/new"))
+    }
+
+    @Test func customExpressionsStayAdvanced() {
+        for pattern in ["claude.ai", "^https?://example.com(?:[:/?#]|$)", "^https?://example\\.com/path"] {
+            #expect(Rule(regex: pattern, app: browser).website == nil)
+        }
+    }
+
+    @Test func validatesDomainInput() {
+        #expect(Rule.normalizedWebsite(" Claude.AI ") == "claude.ai")
+        for input in ["", "https://claude.ai", "claude.ai/path", "*.claude.ai", "foo..com", "-bad.com", "bad .com"] {
+            #expect(Rule.normalizedWebsite(input) == nil)
+        }
+    }
+}

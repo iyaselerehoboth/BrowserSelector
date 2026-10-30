@@ -1,203 +1,151 @@
-//
-//  EditRuleForm.swift
-//  BrowserSelector
-//
-//  Created by Aleksandr Strizhnev on 02.12.2024.
-//
-
+import AppKit
 import SwiftUI
-
-struct EditRuleForm: View {
-    @Binding var rule: Rule
-    @Binding var isPresented: Bool
-    
-    @AppStorage("rules") private var rules: [Rule] = []
-    
-    var body: some View {
-        RuleForm(
-            rule: rule,
-            onCancel: {
-                isPresented.toggle()
-            },
-            onSave: {
-                rule = $0
-                isPresented.toggle()
-            },
-            onDelete: {
-                rules.removeAll {
-                    $0 == rule
-                }
-                isPresented.toggle()
-            }
-        )
-    }
-}
-
-struct NewRuleForm: View {
-    @Binding var isPresented: Bool
-    
-    @AppStorage("rules") private var rules: [Rule] = []
-    
-    var body: some View {
-        RuleForm(
-            rule: nil,
-            onCancel: {
-                isPresented.toggle()
-            },
-            onSave: {
-                rules.append($0)
-                isPresented.toggle()
-            },
-            onDelete: {
-                isPresented.toggle()
-            }
-        )
-    }
-}
 
 struct RuleForm: View {
     var rule: Rule?
-    
     var onCancel: () -> Void
     var onSave: (Rule) -> Void
     var onDelete: () -> Void
 
-    @State private var openWithPresented = false
-    
-    @State private var regex: String = ""
-    @State private var testUrls: String = "https://github.com/indranandjha1993/BrowserSelector\nhttps://example.com"
-    @State private var url: URL?
+    @AppStorage("browsers") private var browsers: [URL] = []
+    @State private var advanced = false
+    @State private var website = ""
+    @State private var includeSubdomains = true
+    @State private var regex = ""
+    @State private var testURL = ""
+    @State private var app: URL?
     @State private var profileDirectory: String?
+    @State private var importing = false
+    @State private var deleting = false
 
     private var profiles: [BrowserProfile] {
-        guard let url, let id = Bundle(url: url)?.bundleIdentifier else { return [] }
+        guard let id = app.flatMap({ Bundle(url: $0)?.bundleIdentifier }) else { return [] }
         return BrowserUtil.profiles(for: id)
     }
-    
-    private var compiledRegex: Regex<AnyRegexOutput>? {
-        return try? Regex(regex).ignoresCase()
+    private var choices: [URL] {
+        var result = browsers.filter { Bundle(url: $0) != nil }
+        if let app, !result.contains(app) { result.append(app) }
+        return result
     }
-    
-    private var attributtedText: AttributedString {
-        var string = AttributedString(testUrls)
-        guard let compiledRegex else {
-            return string
+    private var draft: Rule? {
+        guard let app else { return nil }
+        if advanced {
+            guard !regex.isEmpty, (try? Regex(regex)) != nil else { return nil }
+            return Rule(regex: regex, app: app, profileDirectory: profileDirectory)
         }
-        
-        for line in testUrls.split(separator: "\n") {
-            if line.firstMatch(of: compiledRegex) != nil, let range = string.range(of: line) {
-                string[range].foregroundColor = .red
-            }
-        }
-        
-        return string
+        guard let host = Rule.normalizedWebsite(website) else { return nil }
+        return Rule.forHost(host, app: app, profileDirectory: profileDirectory, includeSubdomains: includeSubdomains)
     }
-    
-    var body: some View {
-        Form {
-            Section(
-                header: Text("General")
-                    .font(.headline)
-            ) {
-                TextField("Regex:", text: $regex)
-                    .font(
-                        .system(size: 14)
-                    )
-                
-                LabeledContent("Test URLs:") {
-                    TextEditor(text: $testUrls)
-                        .font(
-                            .system(size: 14)
-                        )
-                }
-                
-                Text(attributtedText)
-                    .font(
-                        .system(size: 14)
-                    )
-            }
-            
-            Spacer()
-                .frame(height: 32)
-            
-            
-            LabeledContent("Application:") {
-                Button(action: {
-                    openWithPresented.toggle()
-                }) {
-                    Text("Open with")
-                }
-                .fileImporter(
-                    isPresented: $openWithPresented,
-                    allowedContentTypes: [.application]
-                ) {
-                    if case .success(let url) = $0 {
-                        self.url = url
-                        profileDirectory = nil
-                    }
-                }
-                
-                if let url {
-                    Text(Bundle(url: url)?.appDisplayName ?? url.deletingPathExtension().lastPathComponent)
-                        .padding(.horizontal, 5)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            
-            Spacer()
-                .frame(height: 32)
-            
-            if !profiles.isEmpty || profileDirectory != nil {
-                Picker("Profile:", selection: $profileDirectory) {
-                    Text("Browser default").tag(nil as String?)
-                    ForEach(profiles) { profile in
-                        Text(profile.label).tag(Optional(profile.directory))
-                    }
-                    if let directory = profileDirectory, !profiles.contains(where: { $0.directory == directory }) {
-                        Text("\(directory) (unavailable)").tag(Optional(directory))
-                    }
-                }
-            }
+    private var appName: String {
+        app.flatMap { Bundle(url: $0)?.appDisplayName } ?? app?.deletingPathExtension().lastPathComponent ?? "Choose a browser"
+    }
 
-            HStack {
-                Button(role: .cancel, action: onCancel) {
-                    Text("Cancel")
-                }
-                
-                if rule != nil {
-                    Button(role: .destructive, action: onDelete) {
-                        Text("Delete")
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(rule == nil ? "New website rule" : (rule?.website?.host ?? "Advanced rule"))
+                            .font(.title2.bold())
+                        Text("Open this website automatically.").foregroundStyle(.secondary)
+                    }
+                    Picker("Rule type", selection: $advanced) {
+                        Text("Website").tag(false)
+                        Text("Advanced regex").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: advanced) { value in
+                        if value, let host = Rule.normalizedWebsite(website) {
+                            regex = Rule.forHost(host, app: app ?? URL(fileURLWithPath: "/"), includeSubdomains: includeSubdomains).regex
+                        }
+                    }
+                    if advanced {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Regular expression").fontWeight(.medium)
+                            TextField("URL pattern", text: $regex).font(.system(.body, design: .monospaced))
+                            Text("Matches the full URL, ignoring case.").font(.caption).foregroundStyle(.secondary)
+                            if !regex.isEmpty && (try? Regex(regex)) == nil {
+                                Text("Enter a valid regular expression.").font(.caption).foregroundStyle(.red)
+                            }
+                        }
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Website").fontWeight(.medium)
+                            TextField("example.com", text: $website)
+                            Toggle("Include subdomains", isOn: $includeSubdomains)
+                            Text(includeSubdomains ? "Also matches subdomains of this website." : "Matches only this exact domain.")
+                                .font(.caption).foregroundStyle(.secondary)
+                            if !website.isEmpty && Rule.normalizedWebsite(website) == nil {
+                                Text("Enter a domain such as example.com, without https:// or a path.")
+                                    .font(.caption).foregroundStyle(.red)
+                            }
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Open with").fontWeight(.medium)
+                        Picker("Browser", selection: Binding(get: { app }, set: { app = $0; profileDirectory = nil })) {
+                            Text("Choose a browser").tag(nil as URL?)
+                            ForEach(choices, id: \.self) { url in
+                                Text(Bundle(url: url)?.appDisplayName ?? url.deletingPathExtension().lastPathComponent).tag(Optional(url))
+                            }
+                        }.labelsHidden()
+                        Button("Choose another application…") { importing = true }.font(.caption)
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Profile").fontWeight(.medium)
+                        Picker("Profile", selection: $profileDirectory) {
+                            Text("Browser default").tag(nil as String?)
+                            ForEach(profiles) { Text($0.label).tag(Optional($0.directory)) }
+                            if let directory = profileDirectory, !profiles.contains(where: { $0.directory == directory }) {
+                                Text("\(directory) (unavailable)").tag(Optional(directory))
+                            }
+                        }.labelsHidden()
+                    }
+                    Divider()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Try a link").fontWeight(.medium)
+                        TextField("https://example.com/page", text: $testURL)
+                        if !testURL.isEmpty {
+                            let validURL = URL(string: testURL).map { ["http", "https"].contains($0.scheme?.lowercased() ?? "") && $0.host != nil } ?? false
+                            let matches = validURL && (draft?.matches(testURL) ?? false)
+                            Label(validURL ? (matches ? "Matches this rule" : "Does not match this rule") : "Enter a complete HTTP or HTTPS URL", systemImage: matches ? "checkmark.circle.fill" : "info.circle")
+                                .foregroundStyle(matches ? Color.green : Color.secondary)
+                            if matches {
+                                Text("Opens in \(appName)\(profileDirectory.map { directory in ", \(profiles.first { $0.directory == directory }?.name ?? directory) profile" } ?? "")")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                        Text("Preview only. This does not open the link.").font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                
-                Spacer()
-                
-                Button(action: {
-                    guard let url else {
-                        return
-                    }
-                    
-                    onSave(
-                        Rule(
-                            regex: regex,
-                            app: url,
-                            profileDirectory: profileDirectory
-                        )
-                    )
-                }) {
-                    Text("Save")
-                }
-                .disabled(regex.isEmpty || compiledRegex == nil || url == nil)
+                .textFieldStyle(.roundedBorder)
+                .padding(24)
             }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            Divider()
+            HStack {
+                if rule != nil {
+                    Button("Delete rule", role: .destructive) { deleting = true }
+                }
+                Spacer()
+                Button("Cancel", action: onCancel)
+                Button("Save changes") { if let draft { onSave(draft) } }
+                    .buttonStyle(.borderedProminent).disabled(draft == nil)
+            }.padding(20)
         }
-        .padding(20)
-        .frame(minWidth: 500)
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.application]) { result in
+            if case .success(let url) = result { app = url; profileDirectory = nil }
+        }
+        .confirmationDialog("Delete this rule?", isPresented: $deleting) {
+            Button("Delete rule", role: .destructive, action: onDelete)
+        } message: { Text("Links for this website will use the remaining rules or show the browser picker.") }
         .onAppear {
+            advanced = rule != nil && rule?.website == nil
+            website = rule?.website?.host ?? ""
+            includeSubdomains = rule?.website?.includeSubdomains ?? true
             regex = rule?.regex ?? ""
-            url = rule?.app
+            app = rule?.app
             profileDirectory = rule?.profileDirectory
+            testURL = rule?.website.map { "https://\($0.host)/" } ?? ""
         }
     }
 }
